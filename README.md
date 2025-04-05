@@ -1,1 +1,1 @@
-# formula-strats
+# Formula Strats
