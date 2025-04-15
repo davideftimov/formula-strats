@@ -55,9 +55,10 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [timestamp, setTimestamp] = useState<string>("2024-08-25T13:03:19+00:00");
-	const currentTimestampRef = useRef<string>("2025-03-23T07:42:00+00:00");
+	const currentTimestampRef = useRef<string>("2025-04-13T15:35:00+00:00");
 	const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 	const [lapsData, setLapsData] = useState<Lap[]>([]);
+	const [raceFinished, setRaceFinished] = useState<boolean>(false);
 
 	// Fetch all available sessions once at component mount
 	useEffect(() => {
@@ -109,6 +110,11 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	// Fetch intervals and driver data when session is available
 	useEffect(() => {
 		if (!session || driversData.length === 0) return;
+		if (currentTimestampRef.current > session.date_end) {
+			setRaceFinished(true);
+			setLoading(false);
+			return
+		}
 
 		let intervalId: NodeJS.Timeout;
 		let previousProcessedIntervals: ProcessedInterval[] = [];
@@ -237,7 +243,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 			{/* Two-column layout container */}
 			<div className="flex flex-row">
 				{/* Left column - Driver Rankings */}
-				<div className="w-1/5 flex flex-col justify-end">
+				<div className="w-1/5 flex flex-col justify-start">
 					{drivers.length > 0 && (
 						<div>
 							<div className="max-w-full">
@@ -279,35 +285,24 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 				</div>
 
 				{/* Right column - Selectors, Timeline, and Charts */}
-				<div className="w-4/5 px-10">
+				<div className="w-4/5">
+					<div className="ml-2">
+						<h1 className='text-2xl font-bold mb-4'>
+							{session?.location} - {session?.session_name}
+							{raceFinished && " - FINISHED"}
+						</h1>
+					</div>
 					{/* Session and Driver selectors */}
-					<div className="mb-4 flex gap-4 flex-wrap w-1/2">
-						{/* Session selector */}
-						<div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2 flex-1 min-w-[300px]">
-							<h3 className="text-md font-bold mb-2">Select Session</h3>
+					{/* <div className="mb-4 flex gap-4 flex-wrap w-1/2"> */}
+					{drivers.length > 0 && (
+						<div className="bg-white flex flex-row items-center ml-2">
+							{/* <h3 className="text-md font-bold mr-2">Select Pit Driver</h3> */}
 							<select
-								className="border rounded p-2 w-full"
-								value={session?.session_key || ''}
-								onChange={handleSessionChange}
-							>
-								<option value="" disabled>-- Select a session --</option>
-								{sessions.map((s) => (
-									<option key={s.session_key} value={s.session_key}>
-										{s.location} - {s.session_name}
-									</option>
-								))}
-							</select>
-						</div>
-
-						{/* Driver selector */}
-						<div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2 flex-1 min-w-[200px]">
-							<h3 className="text-md font-bold mb-2">Select Pit Driver</h3>
-							<select
-								className="border rounded p-2 w-full"
+								className="border text-sm border-gray-300 rounded-lg p-2 pr-5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition text-gray-800 hover:border-blue-300"
 								value={selectedDriver || ""}
 								onChange={(e) => setSelectedDriver(e.target.value || null)}
 							>
-								<option value="">-- Select a driver --</option>
+								<option value="">-- Pit driver --</option>
 								{drivers.map((driver, index) => (
 									<option key={index} value={driver.name}>
 										{driver.name}
@@ -315,134 +310,135 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 								))}
 							</select>
 						</div>
-
-
-					</div>
+					)}
+					{/* </div> */}
 
 					{/* Driver timeline */}
-					{drivers.length === 0 ? (
-						<p className="mt-4">No driver data available</p>
-					) : (
-						<div className="relative h-32 w-full"> {/* Increased height to accommodate multiple rows */}
-							{/* Horizontal line */}
-							<div className="absolute top-10 left-0 w-full h-0.5 bg-gray-300"></div>
+					{drivers.length > 0 && (
+						<div className='px-6'>
+							<div className="relative h-32 w-full"> {/* Increased height to accommodate multiple rows */}
+								{/* Horizontal line */}
+								<div className="absolute top-10 left-0 w-full h-0.5 bg-gray-300"></div>
 
-							{/* Driver dots and labels */}
-							{(() => {
-								// Calculate position for each driver
-								const driverPositions = drivers.map((driver, index) => {
-									const position = driver.gapToLeader === null
-										? 100  // Leader at the right edge
-										: 100 - (driver.gapToLeader / maxGap) * 100; // Others proportionally to the left
+								{/* Driver dots and labels */}
+								{(() => {
+									// Calculate position for each driver
+									const driverPositions = drivers.map((driver, index) => {
+										const position = driver.gapToLeader === null
+											? 100  // Leader at the right edge
+											: 100 - (driver.gapToLeader / maxGap) * 100; // Others proportionally to the left
 
-									return {
-										driver,
-										position,
-										index
-									};
-								});
+										return {
+											driver,
+											position,
+											index
+										};
+									});
 
-								// Assign rows to drivers to avoid label overlap
-								const MIN_LABEL_WIDTH = 3; // Estimated minimum width percentage for a label
-								const rowAssignments: number[] = new Array(drivers.length).fill(0);
+									// Assign rows to drivers to avoid label overlap
+									const MIN_LABEL_WIDTH = 3; // Estimated minimum width percentage for a label
+									const rowAssignments: number[] = new Array(drivers.length).fill(0);
 
-								// Sort by position (left to right) to better detect overlaps
-								const sortedPositions = [...driverPositions].sort((a, b) => a.position - b.position);
+									// Sort by position (left to right) to better detect overlaps
+									const sortedPositions = [...driverPositions].sort((a, b) => a.position - b.position);
 
-								// Assign rows - more sophisticated algorithm
-								sortedPositions.forEach((driverPos, i) => {
-									const { index, position } = driverPos;
+									// Assign rows - more sophisticated algorithm
+									sortedPositions.forEach((driverPos, i) => {
+										const { index, position } = driverPos;
 
-									// Find all previous drivers that would overlap with this one
-									const overlapping = sortedPositions
-										.slice(0, i)
-										.filter(prev =>
-											Math.abs(prev.position - position) < MIN_LABEL_WIDTH);
+										// Find all previous drivers that would overlap with this one
+										const overlapping = sortedPositions
+											.slice(0, i)
+											.filter(prev =>
+												Math.abs(prev.position - position) < MIN_LABEL_WIDTH);
 
-									if (overlapping.length > 0) {
-										// Find the lowest unused row
-										const usedRows = new Set(overlapping.map(p => rowAssignments[p.index]));
-										let row = 0;
-										while (usedRows.has(row)) row++;
-										rowAssignments[index] = row;
-									} else {
-										// No overlap, use row 0
-										rowAssignments[index] = 0;
-									}
-								});
+										if (overlapping.length > 0) {
+											// Find the lowest unused row
+											const usedRows = new Set(overlapping.map(p => rowAssignments[p.index]));
+											let row = 0;
+											while (usedRows.has(row)) row++;
+											rowAssignments[index] = row;
+										} else {
+											// No overlap, use row 0
+											rowAssignments[index] = 0;
+										}
+									});
 
-								// Calculate max row to adjust container height if needed
-								const maxRow = Math.max(...rowAssignments);
+									// Calculate max row to adjust container height if needed
+									const maxRow = Math.max(...rowAssignments);
 
-								// Render dots and labels
-								return drivers.map((driver, index) => {
-									const position = driverPositions.find(p => p.index === index)?.position || 0;
-									const row = rowAssignments[index];
+									// Render dots and labels
+									return drivers.map((driver, index) => {
+										const position = driverPositions.find(p => p.index === index)?.position || 0;
+										const row = rowAssignments[index];
 
-									// Calculate vertical offsets based on row
-									const dotTop = 30; // Fixed position for all dots
-									const labelTop = dotTop + 25 + (row * 24); // Increasing vertical space with row number
-									const lineHeight = labelTop - dotTop;
+										// Calculate vertical offsets based on row
+										const dotTop = 30; // Fixed position for all dots
+										const labelTop = dotTop + 25 + (row * 24); // Increasing vertical space with row number
+										const lineHeight = labelTop - dotTop;
 
-									return (
-										<div
-											key={index}
-											className="absolute"
-											style={{
-												left: `${position}%`,
-												top: `${dotTop}px`,
-												transform: 'translateX(-50%)',
-											}}
-										>
-											{/* Driver dot */}
+										return (
 											<div
-												className="w-5 h-5 rounded-full border-2 border-white shadow-md"
-												style={{ backgroundColor: driver.color }}
-											/>
-
-											{/* Connecting line */}
-											<div
+												key={index}
+												className="absolute"
 												style={{
-													position: 'absolute',
-													left: '50%',
-													top: '100%',
-													width: '2px',
-													height: `${lineHeight}px`,
-													backgroundColor: driver.color,
+													left: `${position}%`,
+													top: `${dotTop}px`,
 													transform: 'translateX(-50%)',
-												}}
-											/>
-
-											{/* Driver name */}
-											<div
-												style={{
-													position: 'absolute',
-													top: `${lineHeight + 5}px`,
-													left: '50%',
-													transform: 'translateX(-50%)',
-													backgroundColor: 'rgba(255, 255, 255, 0.9)',
-													padding: '2px 6px',
-													borderRadius: '4px',
-													border: `1px solid ${driver.color}`,
-													fontWeight: 'bold',
-													whiteSpace: 'nowrap',
-													zIndex: 10,
-													fontSize: '0.9rem',
 												}}
 											>
-												{driver.name}
+												{/* Driver dot */}
+												<div
+													className="w-5 h-5 rounded-full border-2 border-white shadow-md"
+													style={{ backgroundColor: driver.color }}
+												/>
+
+												{/* Connecting line */}
+												<div
+													style={{
+														position: 'absolute',
+														left: '50%',
+														top: '100%',
+														width: '2px',
+														height: `${lineHeight}px`,
+														backgroundColor: driver.color,
+														transform: 'translateX(-50%)',
+													}}
+												/>
+
+												{/* Driver name */}
+												<div
+													style={{
+														position: 'absolute',
+														top: `${lineHeight + 5}px`,
+														left: '50%',
+														transform: 'translateX(-50%)',
+														backgroundColor: 'rgba(255, 255, 255, 0.9)',
+														padding: '2px 6px',
+														borderRadius: '4px',
+														border: `1px solid ${driver.color}`,
+														fontWeight: 'bold',
+														whiteSpace: 'nowrap',
+														zIndex: 10,
+														fontSize: '0.9rem',
+													}}
+												>
+													{driver.name}
+												</div>
 											</div>
-										</div>
-									);
-								});
-							})()}
+										);
+									});
+								})()}
+							</div>
 						</div>
 					)}
 
+
 					{/* Lap Chart */}
+					<hr className='border-gray-300 mt-10 mb-5' />
 					{lapsData.length > 0 && (
-						<div className="mt-8">
-							<h3 className="text-lg font-bold mb-2">Lap Timeline</h3>
+						<div className="ml-2">
+							{/* <h3 className="text-lg font-semibold mb-2">Lap Timeline</h3> */}
 							<LapChart laps={lapsData} drivers={driversData} />
 						</div>
 					)}

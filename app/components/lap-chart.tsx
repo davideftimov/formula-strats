@@ -208,7 +208,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 	return (
 		<div className="w-full overflow-x-auto">
 			{durationRanges.hasOutliers && (
-				<div className="mb-2 flex items-center">
+				<div className="mb-2 ml-10 flex items-center">
 					<label className="flex items-center text-sm">
 						<input
 							type="checkbox"
@@ -220,7 +220,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 					</label>
 				</div>
 			)}
-			<div className="w-full h-[350px] border border-gray-200 rounded-lg shadow-sm bg-white p-4">
+			<div className="w-full h-[350px] bg-white p-4">
 				<ResponsiveContainer width="100%" height="100%">
 					<LineChart
 						data={chartData}
@@ -229,11 +229,11 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 						<CartesianGrid strokeDasharray="3 3" />
 						<XAxis
 							dataKey="lapNumber"
-						// label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -5 }}
+							label={{ value: 'Lap', position: 'insideBottomRight', offset: -5 }}
 						/>
 						<YAxis
 							domain={yAxisDomain}
-						// label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft', offset: -5 }}
+							label={{ value: 'Time', angle: -90, position: 'insideBottomLeft', offset: -5 }}
 						/>
 						<Tooltip content={<CustomTooltip />} />
 						<Legend />
