@@ -4,9 +4,16 @@ import type { Interval, ProcessedInterval } from '../types/interval';
 import type { Driver } from '../types/driver';
 import type { Lap } from '../types/lap';
 
-export async function fetchLatestMeeting(): Promise<Meeting[]> {
-	const currentYear = new Date().getFullYear();
-	const response = await fetch(`https://api.openf1.org/v1/meetings?year=${currentYear}&meeting_key=latest`);
+export async function fetchMeetings(sessionKey?: string | number, year?: number): Promise<Meeting[]> {
+	const currentYear = year || new Date().getFullYear();
+
+	let url = `https://api.openf1.org/v1/meetings?year=${currentYear}`;
+
+	if (sessionKey) {
+		url += `&meeting_key=${sessionKey}`;
+	}
+
+	const response = await fetch(url);
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch meeting data');
@@ -16,10 +23,19 @@ export async function fetchLatestMeeting(): Promise<Meeting[]> {
 	return data;
 }
 
-export async function fetchLatestSession(): Promise<Session[]> {
-	const currentYear = new Date().getFullYear();
-	const response = await fetch(`https://api.openf1.org/v1/sessions?year=${currentYear}&session_key=latest`);
-	// const response = await fetch(`https://api.openf1.org/v1/sessions?year=2024&session_key=9582`);
+export async function fetchSessions(sessionKey?: string | number, session_type?: string, year?: number): Promise<Session[]> {
+	const currentYear = year || new Date().getFullYear();
+
+	let url = `https://api.openf1.org/v1/sessions?year=${currentYear}`;
+
+	if (sessionKey) {
+		url += `&session_key=${sessionKey}`;
+	}
+	if (session_type) {
+		url += `&session_type=${session_type}`;
+	}
+
+	const response = await fetch(`${url}`);
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch session data');
@@ -29,40 +45,32 @@ export async function fetchLatestSession(): Promise<Session[]> {
 	return data;
 }
 
-export async function fetchSessions(session_type: string = 'Race', year?: number): Promise<Session[]> {
-	// Default to current year if not specified
-	const sessionYear = year || new Date().getFullYear();
+export async function fetchIntervals(sessionKey: string | number = 'latest', timestamp?: string, finished: boolean = false): Promise<Interval[]> {
+	let url = `https://api.openf1.org/v1/intervals?session_key=${sessionKey}`;
 
-	// Build the API URL with the session type filter
-	const response = await fetch(`https://api.openf1.org/v1/sessions?year=${sessionYear}&session_type=${session_type}`);
-
-	if (!response.ok) {
-		throw new Error('Failed to fetch session data');
-	}
-
-	const data = await response.json();
-	return data;
-}
-
-export async function fetchIntervals(sessionKey: string | number = 'latest', timestamp?: string): Promise<Interval[]> {
-	// Get timestamp from 30 seconds ago
-	const thirtySecondsAgo = new Date();
-	thirtySecondsAgo.setSeconds(thirtySecondsAgo.getSeconds() - 40);
-	const dateParam = thirtySecondsAgo.toISOString();
-	console.log("DATE CHECK:", thirtySecondsAgo);
-	console.log("DATE PARAM:", dateParam);
-
-	// Create timestamp 30 seconds before the provided timestamp
-	let timestampThirtySecondsAgo = "";
 	if (timestamp) {
-		const date = new Date(timestamp);
-		date.setSeconds(date.getSeconds() - 60);
-		timestampThirtySecondsAgo = date.toISOString().replace(/\.\d+Z$/, "");
-		// timestampThirtySecondsAgo = date.toISOString();
+		if (finished) {
+			url += `&date>=${timestamp}`;
+		} else {
+			const date = new Date(timestamp);
+			date.setSeconds(date.getSeconds() - 60);
+			let timestampThirtySecondsAgo = date.toISOString().replace(/\.\d+Z$/, "");
+			url += `&date>=${timestampThirtySecondsAgo}`;
+			url += `&date<=${timestamp}`;
+		}
+	} else {
+		// Get timestamp from 30 seconds ago
+		const thirtySecondsAgo = new Date();
+		thirtySecondsAgo.setSeconds(thirtySecondsAgo.getSeconds() - 40);
+		const dateParam = thirtySecondsAgo.toISOString();
+		console.log("DATE CHECK:", thirtySecondsAgo);
+		console.log("DATE PARAM:", dateParam);
+		url += `&date>=${dateParam}`;
 	}
 
-	// const response = await fetch(`https://api.openf1.org/v1/intervals?session_key=${sessionKey}&date>=${dateParam}`);
-	const response = await fetch(`https://api.openf1.org/v1/intervals?session_key=${sessionKey}&date>=${timestampThirtySecondsAgo}&date<=${timestamp}`);
+
+	const response = await fetch(url);
+	// const response = await fetch(`https://api.openf1.org/v1/intervals?session_key=${sessionKey}&date>=${timestampThirtySecondsAgo}&date<=${timestamp}`);
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch interval data');
@@ -120,46 +128,43 @@ export async function fetchLaps(
 }
 
 export function processIntervalData(intervals: Interval[], previousProcessed: ProcessedInterval[] = []): ProcessedInterval[] {
-	// Group intervals by driver_number and get only the latest one for each driver
+	// Group intervals by driver_number and get only the latest one for each driver with a non-null gap
 	const driverMap = new Map<number, Interval>();
-
 	intervals.forEach(interval => {
 		const existing = driverMap.get(interval.driver_number);
-		if (!existing || new Date(interval.date) > new Date(existing.date)) {
+		// Only consider intervals with a valid gap_to_leader
+		if (interval.gap_to_leader !== null && (!existing || new Date(interval.date) > new Date(existing.date))) {
 			driverMap.set(interval.driver_number, interval);
 		}
 	});
+	console.log("Driver map (latest valid intervals):", driverMap);
 
-	// Convert map to array
+	// Convert map to array and create initial processed intervals
 	const latestIntervals = Array.from(driverMap.values());
+	let processedIntervals: ProcessedInterval[] = latestIntervals.map(interval => ({
+		...interval,
+		isLeader: false // Initialize isLeader flag
+	}));
 
-	// Find the leader (both interval and gap_to_leader are null)
-	const leader = latestIntervals.find(interval =>
-		interval.interval === 0 && interval.gap_to_leader === 0
-	);
+	// Keep track of drivers present in the latest data
+	const currentDrivers = new Set(processedIntervals.map(p => p.driver_number));
 
-	// Process all intervals
-	const processedIntervals = latestIntervals.map(interval => {
-		const processed: ProcessedInterval = { ...interval };
-
-		if (leader && interval.driver_number === leader.driver_number) {
-			processed.isLeader = true;
-		} else {
-			processed.isLeader = false;
-
-			// If gap_to_leader is null, try to use previous data
-			if (processed.gap_to_leader === null) {
-				const previousData = previousProcessed.find(
-					prev => prev.driver_number === interval.driver_number
-				);
-
-				if (previousData && previousData.gap_to_leader !== null) {
-					processed.gap_to_leader = previousData.gap_to_leader;
-				}
-			}
+	// Add drivers from previous data if they are missing in the current data
+	previousProcessed.forEach(prevInterval => {
+		if (!currentDrivers.has(prevInterval.driver_number)) {
+			// Ensure the carried-over interval also has the isLeader flag initialized
+			processedIntervals.push({ ...prevInterval, isLeader: false });
+			console.log(`Adding missing driver ${prevInterval.driver_number} from previous data.`);
 		}
+	});
 
-		return processed;
+	// Find the leader (gap_to_leader is 0 or null/undefined if no leader found in current data)
+	// Note: A driver carried over from previous data might be the leader if the actual leader dropped out
+	const leader = processedIntervals.find(interval => interval.gap_to_leader === 0);
+
+	// Set isLeader flag for all intervals based on the found leader
+	processedIntervals.forEach(interval => {
+		interval.isLeader = leader ? interval.driver_number === leader.driver_number : false;
 	});
 
 	return processedIntervals;
