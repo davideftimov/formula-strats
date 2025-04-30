@@ -11,6 +11,8 @@ interface DriverInterval {
 	name: string;
 	color: string;
 	gapToLeader: number | null; // null means this is the leader
+	isLapped?: boolean;
+	lapsDown?: number;
 }
 
 // Props for our component
@@ -55,7 +57,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [timestamp, setTimestamp] = useState<string>("2024-08-25T13:03:19+00:00");
-	const currentTimestampRef = useRef<string>("2025-04-13T15:35:00+00:00");
+	const currentTimestampRef = useRef<string>("2025-04-20T19:15:00+00:00");
 	const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
 	const [lapsData, setLapsData] = useState<Lap[]>([]);
 	const [raceFinished, setRaceFinished] = useState<boolean>(false);
@@ -65,7 +67,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 		const getAllSessions = async () => {
 			console.log("Fetching all sessions...");
 			try {
-				const fetchedSessions = await fetchSessions();
+				const fetchedSessions = await fetchSessions(undefined, 'Race');
 				if (fetchedSessions && fetchedSessions.length > 0) {
 					setSessions(fetchedSessions);
 					// Default to the last session in the array
@@ -110,36 +112,36 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	// Fetch intervals and driver data when session is available
 	useEffect(() => {
 		if (!session || driversData.length === 0) return;
-		if (currentTimestampRef.current > session.date_end) {
-			setRaceFinished(true);
-			setLoading(false);
-			return
-		}
 
 		let intervalId: NodeJS.Timeout;
 		let previousProcessedIntervals: ProcessedInterval[] = [];
 
 		const fetchData = async () => {
 			try {
-				// Fetch intervals, laps and driver data
-				const [intervalsData, lapsData] = await Promise.all([
-					fetchIntervals(session.session_key, currentTimestampRef.current),
-					fetchLaps(session.session_key, undefined, undefined, currentTimestampRef.current)
-				]);
+				// Check if race is finished
+				const isFinished = new Date().toISOString() > session.date_end;
+				setRaceFinished(isFinished)
+
+				let lapsData;
+				let intervalsData;
+
+				if (isFinished) {
+					// Fetch
+					lapsData = await fetchLaps(session.session_key, undefined, undefined);
+					intervalsData = await fetchIntervals(session.session_key, lapsData[lapsData.length - 30].date_start, true);
+				} else {
+					// lapsData = await fetchLaps(session.session_key, undefined, undefined, currentTimestampRef.current);
+					lapsData = await fetchLaps(session.session_key, undefined, undefined);
+					// intervalsData = await fetchIntervals(session.session_key, currentTimestampRef.current);
+					intervalsData = await fetchIntervals(session.session_key);
+				}
+
 
 				console.log("Intervals data fetched:", intervalsData);
 				console.log("Laps data fetched:", lapsData);
 
 				// Store laps data
 				setLapsData(lapsData);
-
-				// Update timestamp by adding 4 seconds for the next fetch
-				const currentDate = new Date(currentTimestampRef.current);
-				currentDate.setSeconds(currentDate.getSeconds() + 4);
-				const newTimestamp = currentDate.toISOString();
-				currentTimestampRef.current = newTimestamp;
-				setTimestamp(newTimestamp);
-				console.log("Current timestamp:", newTimestamp);
 
 				// Process the interval data
 				const processedIntervals = processIntervalData(intervalsData, previousProcessedIntervals);
@@ -154,14 +156,24 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 				// Map the intervals to our DriverInterval format
 				const mappedDrivers = processedIntervals.map(interval => {
 					const driver = driversData.find(d => d.driver_number === interval.driver_number);
+					const isLapped = typeof interval.gap_to_leader === 'string' && interval.gap_to_leader.includes('L');
+					let lapsDown = 0;
+
+					if (isLapped && typeof interval.gap_to_leader === 'string') {
+						// Regex to match "1L", "+1 LAP", or "1 L" formats
+						const match = interval.gap_to_leader.match(/(?:\+|)(\d+)\s*(?:L|LAP)/);
+						lapsDown = match ? parseInt(match[1]) : 0;
+					}
 
 					return {
 						name: driver?.name_acronym || `D${interval.driver_number}`,
-						color: `#${driverColorMap.get(interval.driver_number)}` || '#CCCCCC', // Default gray color
-						gapToLeader: interval.isLeader ? null : Number(interval.gap_to_leader),
+						color: `#${driverColorMap.get(interval.driver_number)}` || '#CCCCCC',
+						gapToLeader: interval.isLeader ? null : (isLapped ? Number.MAX_VALUE : Number(interval.gap_to_leader)),
+						isLapped: isLapped,
+						lapsDown: lapsDown
 					};
 				});
-
+				console.log("mappedDrivers", mappedDrivers);
 				console.log("selectedDriver", selectedDriver);
 				// Add simulated position after pit stop for selected driver
 				if (selectedDriver) {
@@ -187,13 +199,18 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 					}
 				}
 
-				// Sort by position (leader first, then by gap)
+				// Sort by position (leader first, not lapped by gap, lapped drivers last by laps down)
 				const sortedDrivers = mappedDrivers.sort((a, b) => {
 					if (a.gapToLeader === null) return -1;
 					if (b.gapToLeader === null) return 1;
+					if (a.isLapped && !b.isLapped) return 1;
+					if (!a.isLapped && b.isLapped) return -1;
+					if (a.isLapped && b.isLapped) return b.lapsDown - a.lapsDown;
 					return (a.gapToLeader as number) - (b.gapToLeader as number);
 				});
-				console.log(sortedDrivers);
+
+				// Filter out lapped drivers for the timeline visualization
+				const timelineDrivers = sortedDrivers.filter(d => !d.isLapped);
 				setDrivers(sortedDrivers);
 				setLoading(false);
 			} catch (err) {
@@ -203,13 +220,17 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 			}
 		};
 
-		// Fetch immediately and then every 4 seconds
+		// Fetch immediately
 		fetchData();
-		intervalId = setInterval(fetchData, 4000);
+
+		// Only set up interval if race isn't finished
+		if (currentTimestampRef.current <= session.date_end) {
+			intervalId = setInterval(fetchData, 4000);
+		}
 
 		// Clean up
 		return () => {
-			clearInterval(intervalId);
+			if (intervalId) clearInterval(intervalId);
 		};
 	}, [session, driversData, selectedDriver]);
 
@@ -217,7 +238,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	const maxGap = drivers.length > 0
 		? Math.max(
 			...drivers
-				.filter((driver) => driver.gapToLeader !== null)
+				.filter((driver) => !driver.isLapped && driver.gapToLeader !== null)
 				.map((driver) => driver.gapToLeader as number)
 		)
 		: 0;
@@ -239,22 +260,30 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	};
 
 	return (
-		<div className="w-full font-sans">
+		<div className="w-full h-[100vh] font-sans">
 			{/* Two-column layout container */}
-			<div className="flex flex-row">
+			<div className="flex flex-row h-full">
 				{/* Left column - Driver Rankings */}
-				<div className="w-1/5 flex flex-col justify-start">
+				<div className="w-1/5 flex flex-col h-full justify-start">
+					<div className="flex flex-row justify-between bg-gray-200 px-2 py-1">
+						<h1 className='text- font-bold'>
+							{session?.location} - {session?.session_name}
+						</h1>
+						<h1 className='text- font-bold'>
+							{raceFinished ? "FINISHED" : lapsData.length > 0 ? `Lap ${lapsData[lapsData.length - 1].lap_number}` : ""}
+						</h1>
+					</div>
 					{drivers.length > 0 && (
 						<div>
 							<div className="max-w-full">
 								<table className="bg-white border border-gray-200 rounded-lg shadow-sm w-full">
-									<thead>
+									{/* <thead>
 										<tr className="bg-gray-100">
 											<th className="py-1 px-2 border-b border-gray-200 text-left w-12">Pos</th>
 											<th className="py-1 px-2 border-b border-gray-200 text-left">Driver</th>
 											<th className="py-1 px-2 border-b border-gray-200 text-right w-20">Gap</th>
 										</tr>
-									</thead>
+									</thead> */}
 									<tbody>
 										{/* Reversing the drivers array to display from bottom to top */}
 										{[...drivers].map((driver, index) => (
@@ -273,7 +302,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 													</div>
 												</td>
 												<td className="py-1 px-2 border-b border-gray-200 text-right">
-													{driver.gapToLeader === null ? 'Leader' : `+${driver.gapToLeader.toFixed(3)}s`}
+													{driver.gapToLeader === null ? 'Leader' : driver.isLapped ? `${driver.lapsDown}L` : `+${driver.gapToLeader.toFixed(3)}s`}
 												</td>
 											</tr>
 										))}
@@ -286,47 +315,37 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 
 				{/* Right column - Selectors, Timeline, and Charts */}
 				<div className="w-4/5">
-					<div className="ml-2">
-						<h1 className='text-2xl font-bold mb-4'>
-							{session?.location} - {session?.session_name}
-							{raceFinished && " - FINISHED"}
-						</h1>
-					</div>
-					{/* Session and Driver selectors */}
-					{/* <div className="mb-4 flex gap-4 flex-wrap w-1/2"> */}
-					{drivers.length > 0 && (
-						<div className="bg-white flex flex-row items-center ml-2">
-							{/* <h3 className="text-md font-bold mr-2">Select Pit Driver</h3> */}
-							<select
-								className="border text-sm border-gray-300 rounded-lg p-2 pr-5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition text-gray-800 hover:border-blue-300"
-								value={selectedDriver || ""}
-								onChange={(e) => setSelectedDriver(e.target.value || null)}
-							>
-								<option value="">-- Pit driver --</option>
-								{drivers.map((driver, index) => (
-									<option key={index} value={driver.name}>
-										{driver.name}
-									</option>
-								))}
-							</select>
-						</div>
-					)}
-					{/* </div> */}
-
 					{/* Driver timeline */}
 					{drivers.length > 0 && (
-						<div className='px-6'>
-							<div className="relative h-32 w-full"> {/* Increased height to accommodate multiple rows */}
+						<div className='px-6 h-[30vh] pt-2'>
+							{/* Session and Driver selectors */}
+							<div className="bg-white flex flex-row items-center justify-center ml-2">
+								{/* <h3 className="text-md font-bold mr-2">Select Pit Driver</h3> */}
+								<select
+									className="border text-sm border-gray-300 rounded-md p-2 pr-5 bg-white focus:outline-none text-gray-700 hover:bg-gray-50 shadow-md"
+									value={selectedDriver || ""}
+									onChange={(e) => setSelectedDriver(e.target.value || null)}
+								>
+									<option value="">Pit driver</option>
+									{drivers.map((driver, index) => (
+										<option key={index} value={driver.name}>
+											{driver.name}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="relative w-full"> {/* Increased height to accommodate multiple rows */}
 								{/* Horizontal line */}
 								<div className="absolute top-10 left-0 w-full h-0.5 bg-gray-300"></div>
 
 								{/* Driver dots and labels */}
 								{(() => {
-									// Calculate position for each driver
-									const driverPositions = drivers.map((driver, index) => {
+									// Filter non-lapped drivers and calculate positions
+									const timelineDrivers = drivers.filter(d => !d.isLapped);
+									const driverPositions = timelineDrivers.map((driver, index) => {
 										const position = driver.gapToLeader === null
 											? 100  // Leader at the right edge
-											: 100 - (driver.gapToLeader / maxGap) * 100; // Others proportionally to the left
+											: Math.max(0, Math.min(100, 100 - ((driver.gapToLeader / maxGap) * 100))); // Scale to 95% to avoid edge overlap
 
 										return {
 											driver,
@@ -337,7 +356,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 
 									// Assign rows to drivers to avoid label overlap
 									const MIN_LABEL_WIDTH = 3; // Estimated minimum width percentage for a label
-									const rowAssignments: number[] = new Array(drivers.length).fill(0);
+									const rowAssignments: number[] = new Array(driverPositions.length).fill(0);
 
 									// Sort by position (left to right) to better detect overlaps
 									const sortedPositions = [...driverPositions].sort((a, b) => a.position - b.position);
@@ -368,8 +387,8 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 									const maxRow = Math.max(...rowAssignments);
 
 									// Render dots and labels
-									return drivers.map((driver, index) => {
-										const position = driverPositions.find(p => p.index === index)?.position || 0;
+									return driverPositions.map((driverPos, index) => {
+										const position = driverPos.position;
 										const row = rowAssignments[index];
 
 										// Calculate vertical offsets based on row
@@ -390,7 +409,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 												{/* Driver dot */}
 												<div
 													className="w-5 h-5 rounded-full border-2 border-white shadow-md"
-													style={{ backgroundColor: driver.color }}
+													style={{ backgroundColor: driverPos.driver.color }}
 												/>
 
 												{/* Connecting line */}
@@ -401,7 +420,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 														top: '100%',
 														width: '2px',
 														height: `${lineHeight}px`,
-														backgroundColor: driver.color,
+														backgroundColor: driverPos.driver.color,
 														transform: 'translateX(-50%)',
 													}}
 												/>
@@ -416,14 +435,14 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 														backgroundColor: 'rgba(255, 255, 255, 0.9)',
 														padding: '2px 6px',
 														borderRadius: '4px',
-														border: `1px solid ${driver.color}`,
+														border: `1px solid ${driverPos.driver.color}`,
 														fontWeight: 'bold',
 														whiteSpace: 'nowrap',
 														zIndex: 10,
 														fontSize: '0.9rem',
 													}}
 												>
-													{driver.name}
+													{driverPos.driver.name}
 												</div>
 											</div>
 										);
@@ -435,9 +454,9 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 
 
 					{/* Lap Chart */}
-					<hr className='border-gray-300 mt-10 mb-5' />
+					{/* <hr className='border-gray-300 mt-10 mb-5' /> */}
 					{lapsData.length > 0 && (
-						<div className="ml-2">
+						<div className="ml-2 h-[70vh]">
 							{/* <h3 className="text-lg font-semibold mb-2">Lap Timeline</h3> */}
 							<LapChart laps={lapsData} drivers={driversData} />
 						</div>

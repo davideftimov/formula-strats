@@ -252,14 +252,22 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 			if (filteredPayload.length === 0) return null;
 
+			filteredPayload.sort((a: any, b: any) => a.value - b.value);
+
+			// Determine grid columns class based on number of items
+			const gridColsClass = filteredPayload.length > 12 ? 'grid-cols-3' :
+				filteredPayload.length > 6 ? 'grid-cols-2' : 'grid-cols-1';
+
 			return (
-				<div className="bg-white p-3 border border-gray-200 shadow-md rounded">
-					<p className="font-bold text-gray-700">{`Lap: ${label}`}</p>
-					{filteredPayload.map((entry: any, index: number) => (
-						<p key={index} style={{ color: entry.stroke }}>
-							{`${entry.name}: ${Number(entry.value).toFixed(3)}s`}
-						</p>
-					))}
+				<div className="bg-white p-3 border border-gray-200 shadow-md rounded max-h-60 overflow-y-auto">
+					<p className="font-bold text-gray-700 mb-2">{`Lap: ${label}`}</p>
+					<div className={`grid ${gridColsClass} gap-x-4 gap-y-1`}>
+						{filteredPayload.map((entry: any, index: number) => (
+							<p key={index} className="text-sm whitespace-nowrap" style={{ color: entry.stroke }}>
+								{`${entry.name}: ${Number(entry.value).toFixed(3)}s`}
+							</p>
+						))}
+					</div>
 				</div>
 			);
 		}
@@ -273,7 +281,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		: [durationRanges.normalRange.minDuration, durationRanges.normalRange.maxDuration];
 
 	return (
-		<div className="w-full overflow-x-auto">
+		<div className="w-full h-full flex flex-col">
 			{/* Controls Row */}
 			<div className="mb-2 ml-10 flex items-center justify-center space-x-4 relative">
 				{/* Driver Selector Dropdown */}
@@ -350,7 +358,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 				)}
 			</div>
 			{/* Chart Area */}
-			<div className="w-full h-[400px] bg-white p-4">
+			<div className="flex-1 w-full bg-white">
 				<ResponsiveContainer width="100%" height="100%">
 					<LineChart
 						data={chartData}
