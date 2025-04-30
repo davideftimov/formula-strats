@@ -244,11 +244,11 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 		: 0;
 
 	if (loading) {
-		return <div className="w-full p-5 my-5 font-sans">Loading driver data...</div>;
+		return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">Loading driver data...</div>;
 	}
 
 	if (error) {
-		return <div className="w-full p-5 my-5 font-sans text-red-500">Error: {error}</div>;
+		return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: {error}</div>;
 	}
 
 	const handleSessionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -264,8 +264,8 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 			{/* Two-column layout container */}
 			<div className="flex flex-row h-full">
 				{/* Left column - Driver Rankings */}
-				<div className="w-1/5 flex flex-col h-full justify-start">
-					<div className="flex flex-row justify-between bg-gray-200 px-2 py-1">
+				<div className="w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
+					<div className="flex flex-row justify-between bg-gray-200 dark:bg-gray-700 px-2 py-1 text-gray-800 dark:text-gray-200">
 						<h1 className='text- font-bold'>
 							{session?.location} - {session?.session_name}
 						</h1>
@@ -276,7 +276,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 					{drivers.length > 0 && (
 						<div>
 							<div className="max-w-full">
-								<table className="bg-white border border-gray-200 rounded-lg shadow-sm w-full">
+								<table className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg shadow-sm w-full">
 									{/* <thead>
 										<tr className="bg-gray-100">
 											<th className="py-1 px-2 border-b border-gray-200 text-left w-12">Pos</th>
@@ -289,10 +289,10 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 										{[...drivers].map((driver, index) => (
 											<tr
 												key={index}
-												className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${driver.name.includes('(After Pit)') ? 'italic' : ''}`}
+												className={`${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'} ${driver.name.includes('(After Pit)') ? 'italic text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}
 											>
-												<td className="py-1 px-2 border-b border-gray-200">{index + 1}</td>
-												<td className="py-1 px-2 border-b border-gray-200">
+												<td className="py-1 px-2 border-b border-gray-200 dark:border-gray-700">{index + 1}</td>
+												<td className="py-1 px-2 border-b border-gray-200 dark:border-gray-700">
 													<div className="flex items-center">
 														<div
 															className="w-3 h-3 rounded-full mr-1"
@@ -301,7 +301,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 														<span>{driver.name}</span>
 													</div>
 												</td>
-												<td className="py-1 px-2 border-b border-gray-200 text-right">
+												<td className="py-1 px-2 border-b border-gray-200 dark:border-gray-700 text-right">
 													{driver.gapToLeader === null ? 'Leader' : driver.isLapped ? `${driver.lapsDown}L` : `+${driver.gapToLeader.toFixed(3)}s`}
 												</td>
 											</tr>
@@ -319,10 +319,10 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 					{drivers.length > 0 && (
 						<div className='px-6 h-[30vh] pt-2'>
 							{/* Session and Driver selectors */}
-							<div className="bg-white flex flex-row items-center justify-center ml-2">
+							<div className="bg-transparent flex flex-row items-center justify-center ml-2"> {/* Changed background */}
 								{/* <h3 className="text-md font-bold mr-2">Select Pit Driver</h3> */}
 								<select
-									className="border text-sm border-gray-300 rounded-md p-2 pr-5 bg-white focus:outline-none text-gray-700 hover:bg-gray-50 shadow-md"
+									className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-2 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
 									value={selectedDriver || ""}
 									onChange={(e) => setSelectedDriver(e.target.value || null)}
 								>
@@ -336,7 +336,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 							</div>
 							<div className="relative w-full"> {/* Increased height to accommodate multiple rows */}
 								{/* Horizontal line */}
-								<div className="absolute top-10 left-0 w-full h-0.5 bg-gray-300"></div>
+								<div className="absolute top-10 left-0 w-full h-0.5 bg-gray-300 dark:bg-gray-600"></div>
 
 								{/* Driver dots and labels */}
 								{(() => {
@@ -408,7 +408,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 											>
 												{/* Driver dot */}
 												<div
-													className="w-5 h-5 rounded-full border-2 border-white shadow-md"
+													className="w-5 h-5 rounded-full border-2 border-white dark:border-gray-800 shadow-md"
 													style={{ backgroundColor: driverPos.driver.color }}
 												/>
 
@@ -427,19 +427,12 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 
 												{/* Driver name */}
 												<div
+													className="absolute px-1.5 py-0.5 rounded font-bold whitespace-nowrap z-10 text-sm bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100"
 													style={{
-														position: 'absolute',
 														top: `${lineHeight + 5}px`,
 														left: '50%',
 														transform: 'translateX(-50%)',
-														backgroundColor: 'rgba(255, 255, 255, 0.9)',
-														padding: '2px 6px',
-														borderRadius: '4px',
 														border: `1px solid ${driverPos.driver.color}`,
-														fontWeight: 'bold',
-														whiteSpace: 'nowrap',
-														zIndex: 10,
-														fontSize: '0.9rem',
 													}}
 												>
 													{driverPos.driver.name}
@@ -454,7 +447,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 
 
 					{/* Lap Chart */}
-					{/* <hr className='border-gray-300 mt-10 mb-5' /> */}
+					{/* <hr className='border-gray-300 dark:border-gray-700 mt-10 mb-5' /> */}
 					{lapsData.length > 0 && (
 						<div className="ml-2 h-[70vh]">
 							{/* <h3 className="text-lg font-semibold mb-2">Lap Timeline</h3> */}
