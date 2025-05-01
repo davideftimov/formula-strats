@@ -5,15 +5,8 @@ import type { ProcessedInterval } from '../types/interval';
 import type { Session } from '~/types/session';
 import type { Lap } from '~/types/lap';
 import { LapChart } from './lap-chart';
-
-// Define the data structure for a driver in our component
-interface DriverInterval {
-	name: string;
-	color: string;
-	gapToLeader: number | null; // null means this is the leader
-	isLapped?: boolean;
-	lapsDown?: number;
-}
+import { DriverRankings } from './driver-rankings';
+import type { DriverInterval } from '~/types/driver-interval';
 
 // Props for our component
 interface DriverTimelineProps {
@@ -265,52 +258,12 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 			<div className="lg:flex"> {/* h-full */}
 				{/* Left column - Driver Rankings */}
 				<div className="lg:w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
-					<div className="flex flex-row justify-between bg-gray-200 dark:bg-gray-700 px-2 py-1 text-gray-800 dark:text-gray-200">
-						<h1 className='text- font-bold'>
-							{session?.location} - {session?.session_name}
-						</h1>
-						<h1 className='text- font-bold'>
-							{raceFinished ? "FINISHED" : lapsData.length > 0 ? `Lap ${lapsData[lapsData.length - 1].lap_number}` : ""}
-						</h1>
-					</div>
-					{drivers.length > 0 && (
-						<div>
-							<div className="max-w-full">
-								<table className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-lg shadow-sm w-full">
-									{/* <thead>
-										<tr className="bg-gray-100">
-											<th className="py-1 px-2 border-b border-gray-200 text-left w-12">Pos</th>
-											<th className="py-1 px-2 border-b border-gray-200 text-left">Driver</th>
-											<th className="py-1 px-2 border-b border-gray-200 text-right w-20">Gap</th>
-										</tr>
-									</thead> */}
-									<tbody>
-										{/* Reversing the drivers array to display from bottom to top */}
-										{[...drivers].map((driver, index) => (
-											<tr
-												key={index}
-												className={`${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'} ${driver.name.includes('(After Pit)') ? 'italic text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}
-											>
-												<td className="py-1 px-2 border-b border-gray-200 dark:border-gray-700">{index + 1}</td>
-												<td className="py-1 px-2 border-b border-gray-200 dark:border-gray-700">
-													<div className="flex items-center">
-														<div
-															className="w-3 h-3 rounded-full mr-1"
-															style={{ backgroundColor: driver.color }}
-														/>
-														<span>{driver.name}</span>
-													</div>
-												</td>
-												<td className="py-1 px-2 border-b border-gray-200 dark:border-gray-700 text-right">
-													{driver.gapToLeader === null ? 'Leader' : driver.isLapped ? `${driver.lapsDown}L` : `+${driver.gapToLeader.toFixed(3)}s`}
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
-						</div>
-					)}
+					<DriverRankings
+						drivers={drivers}
+						session={session}
+						raceFinished={raceFinished}
+						lapsData={lapsData}
+					/>
 				</div>
 
 				{/* Right column - Selectors, Timeline, and Charts */}
