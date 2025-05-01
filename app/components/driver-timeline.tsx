@@ -260,11 +260,11 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 	};
 
 	return (
-		<div className="w-full h-[100vh] font-sans">
+		<div className="w-full lg:h-[100vh] font-sans">
 			{/* Two-column layout container */}
-			<div className="flex flex-row h-full">
+			<div className="lg:flex"> {/* h-full */}
 				{/* Left column - Driver Rankings */}
-				<div className="w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
+				<div className="lg:w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
 					<div className="flex flex-row justify-between bg-gray-200 dark:bg-gray-700 px-2 py-1 text-gray-800 dark:text-gray-200">
 						<h1 className='text- font-bold'>
 							{session?.location} - {session?.session_name}
@@ -314,10 +314,10 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 				</div>
 
 				{/* Right column - Selectors, Timeline, and Charts */}
-				<div className="w-4/5">
+				<div className="lg:w-4/5">
 					{/* Driver timeline */}
 					{drivers.length > 0 && (
-						<div className='px-6 h-[30vh] pt-2'>
+						<div className='px-6 h-[35vh] pt-2'>
 							{/* Session and Driver selectors */}
 							<div className="bg-transparent flex flex-row items-center justify-center ml-2"> {/* Changed background */}
 								{/* <h3 className="text-md font-bold mr-2">Select Pit Driver</h3> */}
@@ -449,7 +449,7 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers: initial
 					{/* Lap Chart */}
 					{/* <hr className='border-gray-300 dark:border-gray-700 mt-10 mb-5' /> */}
 					{lapsData.length > 0 && (
-						<div className="ml-2 h-[70vh]">
+						<div className="ml-2 h-[65vh]">
 							{/* <h3 className="text-lg font-semibold mb-2">Lap Timeline</h3> */}
 							<LapChart laps={lapsData} drivers={driversData} />
 						</div>

@@ -60,7 +60,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body className="bg-white dark:bg-gray-900 text-black dark:text-white transition-colors duration-200">
-        <div className="absolute top-4 right-4 z-50">
+        <div className="absolute top-2 right-4 z-50">
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-offset-2 transition-colors duration-200"
