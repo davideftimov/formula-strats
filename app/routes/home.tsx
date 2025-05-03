@@ -55,6 +55,7 @@ export default function Home() {
   const [timestamp, setTimestamp] = useState<string>("2024-08-25T13:03:19+00:00");
   const currentTimestampRef = useRef<string>("2025-04-20T19:15:00+00:00");
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
+  const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
   const [lapsData, setLapsData] = useState<Lap[]>([]);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
 
@@ -183,7 +184,8 @@ export default function Home() {
             // Get pit time lost for current circuit
             const circuitName = session?.circuit_short_name || '';
             const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
-            const pitTimeLost = pitTimeLostData ? pitTimeLostData.green_flag : 20; // Default to 20s if not found
+            // Add selected penalty to pit time lost
+            const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
 
             // Create simulated position
             const simulatedDriver = {
@@ -231,7 +233,7 @@ export default function Home() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [session, driversData, selectedDriver]);
+  }, [session, driversData, selectedDriver, selectedPenalty]); // Add selectedPenalty to dependency array
 
   if (loading) {
     return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">Loading driver data...</div>;
@@ -263,19 +265,35 @@ export default function Home() {
             {/* Driver timeline */}
             {drivers.length > 0 && (
               <div className='px-6 h-[35vh] pt-2'>
-                {/* Driver selector */}
-                <div className="bg-transparent flex flex-row items-center justify-center ml-2">
+                {/* Driver and Penalty selectors */}
+                <div className="bg-transparent flex flex-row items-center justify-center ml-2 space-x-2">
                   <select
                     className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-2 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
                     value={selectedDriver || ""}
                     onChange={(e) => setSelectedDriver(e.target.value || null)}
                   >
                     <option value="">Pit driver</option>
-                    {drivers.map((driver, index) => (
-                      <option key={index} value={driver.name}>
-                        {driver.name}
-                      </option>
-                    ))}
+                    {drivers
+                      .filter(driver => !driver.name.includes('(Pit)')) // Exclude simulated driver from pit selection
+                      .map((driver, index) => (
+                        <option key={index} value={driver.name}>
+                          {driver.name}
+                        </option>
+                      ))}
+                  </select>
+                  {/* Penalty Selector */}
+                  <select
+                    className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-2 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
+                    value={selectedPenalty}
+                    onChange={(e) => setSelectedPenalty(Number(e.target.value))}
+                    disabled={!selectedDriver} // Disable if no driver is selected
+                  >
+                    <option value={0}>No Penalty</option>
+                    <option value={5}>+5s</option>
+                    <option value={10}>+10s</option>
+                    <option value={15}>+15s</option>
+                    <option value={20}>+20s</option>
+                    <option value={25}>+25s</option>
                   </select>
                 </div>
                 <DriverTimeline drivers={drivers} />
