@@ -115,19 +115,25 @@ export default function Home() {
     const fetchData = async () => {
       try {
         // Check if race is finished
-        const isFinished = new Date().toISOString() > session.date_end;
+        let isFinished = new Date().toISOString() > session.date_end;
+
+        let lapsData: Lap[] = [];
+        let intervalsData: ProcessedInterval[] = [];
+
+        if (!isFinished) {
+          intervalsData = await fetchIntervals(session.session_key);
+          if (intervalsData.length === 0) {
+            isFinished = true;
+          } else {
+            lapsData = await fetchLaps(session.session_key, undefined, undefined);
+          }
+        }
+
         setRaceFinished(isFinished)
 
-        let lapsData;
-        let intervalsData;
-
         if (isFinished) {
-          // Fetch
           lapsData = await fetchLaps(session.session_key, undefined, undefined);
           intervalsData = await fetchIntervals(session.session_key, lapsData[lapsData.length - 30].date_start, true);
-        } else {
-          lapsData = await fetchLaps(session.session_key, undefined, undefined);
-          intervalsData = await fetchIntervals(session.session_key);
         }
 
         console.log("Intervals data fetched:", intervalsData);
