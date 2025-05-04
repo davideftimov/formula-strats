@@ -10,6 +10,7 @@ import type { Lap } from '~/types/lap';
 import { LapChart } from '~/components/lap-chart';
 import { DriverRankings } from '~/components/driver-rankings';
 import type { DriverInterval } from '~/types/driver-interval';
+import { useSettings } from '~/components/settings';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -58,6 +59,7 @@ export default function Home() {
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
   const [lapsData, setLapsData] = useState<Lap[]>([]);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
+  const { delay } = useSettings(); // Use global delay from settings context
 
   // Fetch all available sessions once at component mount
   useEffect(() => {
@@ -122,11 +124,11 @@ export default function Home() {
         let intervalsData: ProcessedInterval[] = [];
 
         if (!isFinished) {
-          intervalsData = await fetchIntervals(session.session_key);
-          if (intervalsData.length === 0) {
+          lapsData = await fetchLaps(session.session_key, undefined, undefined, undefined, delay);
+          intervalsData = await fetchIntervals(session.session_key, undefined, false, delay);
+
+          if (intervalsData.length === 0 && lapsData.length > 0) {
             isFinished = true;
-          } else {
-            lapsData = await fetchLaps(session.session_key, undefined, undefined);
           }
         }
 
@@ -233,7 +235,7 @@ export default function Home() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [session, driversData, selectedDriver, selectedPenalty]); // Add selectedPenalty to dependency array
+  }, [session, driversData, selectedDriver, selectedPenalty, delay]); // Add delay to dependency array
 
   if (loading) {
     return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">Loading driver data...</div>;
