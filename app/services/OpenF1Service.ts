@@ -59,14 +59,18 @@ export async function fetchIntervals(sessionKey: string | number = 'latest', tim
 			url += `&date<=${timestamp}`;
 		}
 	} else {
-		// Get timestamp from 30 seconds ago
-		const thirtySecondsAgo = new Date();
-		thirtySecondsAgo.setSeconds(thirtySecondsAgo.getSeconds() - delay);
-		thirtySecondsAgo.setSeconds(thirtySecondsAgo.getSeconds() - 40);
-		const dateParam = thirtySecondsAgo.toISOString();
-		console.log("DATE CHECK:", thirtySecondsAgo);
-		console.log("DATE PARAM:", dateParam);
-		url += `&date>=${dateParam}`;
+		const delayTime = new Date();
+		if (delay > 0) {
+			delayTime.setSeconds(delayTime.getSeconds() - delay);
+			const delayTimeString = delayTime.toISOString();
+			console.log("INTERVAL DELAY TIME:", delayTimeString);
+			url += `&date<=${delayTimeString}`;
+		}
+		const fortySecondsAgo = new Date(delayTime);
+		fortySecondsAgo.setSeconds(fortySecondsAgo.getSeconds() - 40);
+		const fortySecondsAgoString = fortySecondsAgo.toISOString();
+		console.log("INTERVAL FORTY SECONDS AGO TIME:", fortySecondsAgoString);
+		url += `&date>=${fortySecondsAgoString}`;
 	}
 
 
