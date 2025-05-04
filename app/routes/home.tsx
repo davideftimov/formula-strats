@@ -60,6 +60,7 @@ export default function Home() {
   const [lapsData, setLapsData] = useState<Lap[]>([]);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
   const { delay } = useSettings(); // Use global delay from settings context
+  const [isStarting, setIsStarting] = useState<boolean>(false);
 
   // Fetch all available sessions once at component mount
   useEffect(() => {
@@ -127,8 +128,14 @@ export default function Home() {
           lapsData = await fetchLaps(session.session_key, undefined, undefined, undefined, delay);
           intervalsData = await fetchIntervals(session.session_key, undefined, false, delay);
 
-          if (intervalsData.length === 0 && lapsData.length > 0) {
-            isFinished = true;
+          if (intervalsData.length === 0) {
+            if (lapsData.length > 0) {
+              isFinished = true;
+            } else {
+              setIsStarting(true);
+            }
+          } else {
+            setIsStarting(false);
           }
         }
 
@@ -243,6 +250,10 @@ export default function Home() {
 
   if (error) {
     return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: {error}</div>;
+  }
+
+  if (isStarting) {
+    return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">The race is starting...</div>;
   }
 
   return (
