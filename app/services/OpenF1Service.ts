@@ -45,7 +45,7 @@ export async function fetchSessions(sessionKey?: string | number, session_type?:
 	return data;
 }
 
-export async function fetchIntervals(sessionKey: string | number = 'latest', timestamp?: string, finished: boolean = false): Promise<Interval[]> {
+export async function fetchIntervals(sessionKey: string | number = 'latest', timestamp?: string, finished: boolean = false, delay: number = 0): Promise<Interval[]> {
 	let url = `https://api.openf1.org/v1/intervals?session_key=${sessionKey}`;
 
 	if (timestamp) {
@@ -61,6 +61,7 @@ export async function fetchIntervals(sessionKey: string | number = 'latest', tim
 	} else {
 		// Get timestamp from 30 seconds ago
 		const thirtySecondsAgo = new Date();
+		thirtySecondsAgo.setSeconds(thirtySecondsAgo.getSeconds() - delay);
 		thirtySecondsAgo.setSeconds(thirtySecondsAgo.getSeconds() - 40);
 		const dateParam = thirtySecondsAgo.toISOString();
 		console.log("DATE CHECK:", thirtySecondsAgo);
@@ -97,7 +98,8 @@ export async function fetchLaps(
 	sessionKey: string | number = 'latest',
 	driverNumber?: number,
 	lapNumber?: number,
-	timestamp?: string
+	timestamp?: string,
+	delay: number = 0
 ): Promise<Lap[]> {
 	let url = `https://api.openf1.org/v1/laps?session_key=${sessionKey}`;
 
@@ -115,6 +117,16 @@ export async function fetchLaps(
 		const timestampThirtySecondsAgo = date.toISOString().replace(/\.\d+Z$/, "");
 		url += `&date_start<=${timestampThirtySecondsAgo}`;
 	}
+
+	if (delay > 0) {
+		const newDate = new Date();
+		newDate.setSeconds(newDate.getSeconds() - delay);
+		const dateParam = newDate.toISOString();
+		url += `&date_start<=${dateParam}`;
+		console.log("DATE LAP FETCH:", newDate);
+	}
+
+
 
 	const response = await fetch(url);
 
