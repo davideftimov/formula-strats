@@ -53,8 +53,6 @@ export default function Home() {
   const [driversData, setDriversData] = useState<ApiDriver[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [timestamp, setTimestamp] = useState<string>("2024-08-25T13:03:19+00:00");
-  const currentTimestampRef = useRef<string>("2025-04-20T19:15:00+00:00");
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
   const [lapsData, setLapsData] = useState<Lap[]>([]);
@@ -115,11 +113,12 @@ export default function Home() {
 
     let intervalId: NodeJS.Timeout;
     let previousProcessedIntervals: ProcessedInterval[] = [];
+    let isFinished = false;
 
     const fetchData = async () => {
       try {
         // Check if race is finished
-        let isFinished = new Date().toISOString() > session.date_end;
+        isFinished = new Date().toISOString() > session.date_end;
 
         let lapsData: Lap[] = [];
         let intervalsData: ProcessedInterval[] = [];
@@ -234,7 +233,7 @@ export default function Home() {
     fetchData();
 
     // Only set up interval if race isn't finished
-    if (currentTimestampRef.current <= session.date_end) {
+    if (!isFinished) {
       intervalId = setInterval(fetchData, 4000);
     }
 
