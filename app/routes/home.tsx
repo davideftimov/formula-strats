@@ -11,6 +11,7 @@ import { LapChart } from '~/components/lap-chart';
 import { DriverRankings } from '~/components/driver-rankings';
 import type { DriverInterval } from '~/types/driver-interval';
 import { useSettings } from '~/components/settings';
+import { logger } from '../utils/logger';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -63,7 +64,7 @@ export default function Home() {
   // Fetch all available sessions once at component mount
   useEffect(() => {
     const getAllSessions = async () => {
-      console.log("Fetching all sessions...");
+      logger.log("Fetching all sessions...");
       try {
         const fetchedSessions = await fetchSessions(undefined, 'Race');
         if (fetchedSessions && fetchedSessions.length > 0) {
@@ -71,13 +72,13 @@ export default function Home() {
           // Default to the last session in the array
           const defaultSession = fetchedSessions[fetchedSessions.length - 1];
           setSession(defaultSession);
-          console.log("Default session selected:", defaultSession);
+          logger.log("Default session selected:", defaultSession);
         } else {
           setError('No sessions found');
         }
       } catch (err) {
         setError('Failed to fetch sessions');
-        console.error(err);
+        logger.error(err);
       }
     };
 
@@ -88,19 +89,19 @@ export default function Home() {
   useEffect(() => {
     if (!session) return;
     const getDrivers = async () => {
-      console.log("Fetching drivers...");
+      logger.log("Fetching drivers...");
       if (!session) return;
       try {
         const drivers = await fetchDrivers(session.session_key);
         if (drivers && drivers.length > 0) {
           setDriversData(drivers);
-          console.log("Drivers fetched:", drivers);
+          logger.log("Drivers fetched:", drivers);
         } else {
           setError('No drivers found for this session');
         }
       } catch (err) {
         setError('Failed to fetch drivers');
-        console.error(err);
+        logger.error(err);
       }
     };
 
@@ -145,8 +146,8 @@ export default function Home() {
           intervalsData = await fetchIntervals(session.session_key, lapsData[lapsData.length - 30].date_start, true);
         }
 
-        console.log("Intervals data fetched:", intervalsData);
-        console.log("Laps data fetched:", lapsData);
+        logger.log("Intervals data fetched:", intervalsData);
+        logger.log("Laps data fetched:", lapsData);
 
         // Store laps data
         setLapsData(lapsData);
@@ -182,8 +183,8 @@ export default function Home() {
           };
         });
 
-        console.log("mappedDrivers", mappedDrivers);
-        console.log("selectedDriver", selectedDriver);
+        logger.log("mappedDrivers", mappedDrivers);
+        logger.log("selectedDriver", selectedDriver);
 
         // Add simulated position after pit stop for selected driver
         if (selectedDriver) {
@@ -224,7 +225,7 @@ export default function Home() {
         setLoading(false);
       } catch (err) {
         // Just log the error
-        console.error('Error fetching data:', err);
+        logger.error('Error fetching data:', err);
         if (loading) setLoading(false);
       }
     };

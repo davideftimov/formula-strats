@@ -49,7 +49,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    console.log("Toggling theme");
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
