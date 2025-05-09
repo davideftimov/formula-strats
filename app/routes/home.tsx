@@ -216,7 +216,7 @@ export default function Home() {
           if (b.gapToLeader === null) return 1;
           if (a.isLapped && !b.isLapped) return 1;
           if (!a.isLapped && b.isLapped) return -1;
-          if (a.isLapped && b.isLapped) return b.lapsDown - a.lapsDown;
+          if (a.isLapped && b.isLapped) return a.lapsDown - b.lapsDown;
           return (a.gapToLeader as number) - (b.gapToLeader as number);
         });
 
