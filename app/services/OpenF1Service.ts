@@ -3,6 +3,7 @@ import type { Session } from '../types/session';
 import type { Interval, ProcessedInterval } from '../types/interval';
 import type { Driver } from '../types/driver';
 import type { Lap } from '../types/lap';
+import { logger } from '../utils/logger';
 
 export async function fetchMeetings(sessionKey?: string | number, year?: number): Promise<Meeting[]> {
 	const currentYear = year || new Date().getFullYear();
@@ -63,13 +64,13 @@ export async function fetchIntervals(sessionKey: string | number = 'latest', tim
 		if (delay > 0) {
 			delayTime.setSeconds(delayTime.getSeconds() - delay);
 			const delayTimeString = delayTime.toISOString();
-			console.log("INTERVAL DELAY TIME:", delayTimeString);
+			logger.log("INTERVAL DELAY TIME:", delayTimeString);
 			url += `&date<=${delayTimeString}`;
 		}
 		const fortySecondsAgo = new Date(delayTime);
 		fortySecondsAgo.setSeconds(fortySecondsAgo.getSeconds() - 40);
 		const fortySecondsAgoString = fortySecondsAgo.toISOString();
-		console.log("INTERVAL FORTY SECONDS AGO TIME:", fortySecondsAgoString);
+		logger.log("INTERVAL FORTY SECONDS AGO TIME:", fortySecondsAgoString);
 		url += `&date>=${fortySecondsAgoString}`;
 	}
 
@@ -82,7 +83,7 @@ export async function fetchIntervals(sessionKey: string | number = 'latest', tim
 	}
 
 	const data = await response.json();
-	console.log("Interval data fetched");
+	logger.log("Interval data fetched");
 	return data;
 }
 
@@ -94,7 +95,7 @@ export async function fetchDrivers(sessionKey: string | number = 'latest'): Prom
 	}
 
 	const data = await response.json();
-	console.log("Driver data fetched");
+	logger.log("Driver data fetched");
 	return data;
 }
 
@@ -127,7 +128,7 @@ export async function fetchLaps(
 		newDate.setSeconds(newDate.getSeconds() - delay);
 		const dateParam = newDate.toISOString();
 		url += `&date_start<=${dateParam}`;
-		console.log("DATE LAP FETCH:", newDate);
+		logger.log("DATE LAP FETCH:", newDate);
 	}
 
 
@@ -139,7 +140,7 @@ export async function fetchLaps(
 	}
 
 	const data = await response.json();
-	console.log("Lap data fetched");
+	logger.log("Lap data fetched");
 	return data;
 }
 
@@ -153,7 +154,7 @@ export function processIntervalData(intervals: Interval[], previousProcessed: Pr
 			driverMap.set(interval.driver_number, interval);
 		}
 	});
-	console.log("Driver map (latest valid intervals):", driverMap);
+	logger.log("Driver map (latest valid intervals):", driverMap);
 
 	// Convert map to array and create initial processed intervals
 	const latestIntervals = Array.from(driverMap.values());
@@ -170,7 +171,7 @@ export function processIntervalData(intervals: Interval[], previousProcessed: Pr
 		if (!currentDrivers.has(prevInterval.driver_number)) {
 			// Ensure the carried-over interval also has the isLeader flag initialized
 			processedIntervals.push({ ...prevInterval, isLeader: false });
-			console.log(`Adding missing driver ${prevInterval.driver_number} from previous data.`);
+			logger.log(`Adding missing driver ${prevInterval.driver_number} from previous data.`);
 		}
 	});
 
