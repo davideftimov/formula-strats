@@ -1,11 +1,30 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import type { Lap } from '~/types/lap';
-import type { Driver } from '~/types/driver';
+import type { DriverDetails, Lap } from '~/types';
+import type { Driver } from '~/types/OpenF1Types/driver';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface LapChartProps {
 	laps: Lap[];
-	drivers: Driver[];
+	drivers: DriverDetails[];
+}
+
+function parseTimeToSeconds(timeStr: string): number {
+	// Remove leading '+' or '-' if present
+	const cleanStr = timeStr.trim().replace(/^[+-]/, '');
+
+	if (cleanStr.includes(':')) {
+		// Format is mm:ss.mmm or m:ss.mmm
+		const [minutes, rest] = cleanStr.split(':');
+		const [seconds, milliseconds = '0'] = rest.split('.');
+		return (
+			parseInt(minutes) * 60 +
+			parseInt(seconds) +
+			parseFloat('0.' + milliseconds)
+		);
+	} else {
+		// Format is just seconds.mmm
+		return parseFloat(cleanStr);
+	}
 }
 
 export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
@@ -20,7 +39,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 	// Initialize selected drivers when drivers prop changes
 	useEffect(() => {
-		setSelectedDrivers(new Set(drivers.map(d => d.driver_number)));
+		setSelectedDrivers(new Set(drivers.map(d => Number(d.RacingNumber))));
 	}, [drivers]);
 
 	// Close dropdown when clicking outside
@@ -43,7 +62,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 	}, [isSelectorOpen]);
 
 	// Get all available driver numbers
-	const allDriverNumbers = useMemo(() => drivers.map(d => d.driver_number), [drivers]);
+	const allDriverNumbers = useMemo(() => drivers.map(d => Number(d.RacingNumber)), [drivers]);
 
 	// Process lap data
 	const processedData = useMemo(() => {
@@ -53,15 +72,15 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 		// Group laps by driver
 		laps.forEach(lap => {
-			if (!lapsByDriver.has(lap.driver_number)) {
-				lapsByDriver.set(lap.driver_number, []);
+			if (!lapsByDriver.has(Number(lap.RacingNumber))) {
+				lapsByDriver.set(Number(lap.RacingNumber), []);
 			}
-			lapsByDriver.get(lap.driver_number)?.push(lap);
+			lapsByDriver.get(Number(lap.RacingNumber))?.push(lap);
 		});
 
 		// Sort laps for each driver by lap number
 		lapsByDriver.forEach((driverLaps, driverNumber) => {
-			driverLaps.sort((a, b) => a.lap_number - b.lap_number);
+			driverLaps.sort((a, b) => a.LapNumber - b.LapNumber);
 		});
 
 		return lapsByDriver;
@@ -73,8 +92,8 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		let maxLap = 0;
 
 		laps.forEach(lap => {
-			minLap = Math.min(minLap, lap.lap_number);
-			maxLap = Math.max(maxLap, lap.lap_number);
+			minLap = Math.min(minLap, lap.LapNumber);
+			maxLap = Math.max(maxLap, lap.LapNumber);
 		});
 
 		return { minLap: minLap === Infinity ? 1 : minLap, maxLap };
@@ -88,10 +107,11 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 		// Collect all valid durations
 		laps.forEach(lap => {
-			if (lap.lap_duration !== null) {
-				durations.push(lap.lap_duration);
-				minDuration = Math.min(minDuration, lap.lap_duration);
-				maxDuration = Math.max(maxDuration, lap.lap_duration);
+			const lap_s = parseTimeToSeconds(lap.LapTime);
+			if (lap_s !== null) {
+				durations.push(lap_s);
+				minDuration = Math.min(minDuration, lap_s);
+				maxDuration = Math.max(maxDuration, lap_s);
 			}
 		});
 
@@ -144,10 +164,10 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 	// Find driver name and color
 	const getDriverInfo = (driverNumber: number) => {
-		const driver = drivers.find(d => d.driver_number === driverNumber);
+		const driver = drivers.find(d => Number(d.RacingNumber) === driverNumber);
 		return {
-			name: driver?.name_acronym || `D${driverNumber}`,
-			color: driver?.team_colour ? `#${driver.team_colour}` : '#cccccc'
+			name: driver?.Tla || `D${driverNumber}`,
+			color: driver?.TeamColour ? `#${driver.TeamColour}` : '#cccccc'
 		};
 	};
 
@@ -170,14 +190,15 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 			const { name } = getDriverInfo(driverNumber);
 
 			driverLaps.forEach(lap => {
+				const lap_s = parseTimeToSeconds(lap.LapTime);
 				// Skip outliers if we're not showing them
-				if (!showOutliers && lap.lap_duration !== null && isOutlier(lap.lap_duration)) {
+				if (!showOutliers && lap_s !== null && isOutlier(lap_s)) {
 					return;
 				}
 
-				const dataIndex = lap.lap_number - lapRange.minLap;
+				const dataIndex = lap.LapNumber - lapRange.minLap;
 				if (dataIndex >= 0 && dataIndex < data.length) {
-					data[dataIndex][name] = lap.lap_duration;
+					data[dataIndex][name] = lap_s;
 				}
 			});
 		});
@@ -323,11 +344,11 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 									All / None
 								</div>
 								{/* Individual Driver Options */}
-								{drivers.sort((a, b) => a.driver_number - b.driver_number).map(driver => {
-									const { name, color } = getDriverInfo(driver.driver_number);
-									const isSelected = selectedDrivers.has(driver.driver_number);
+								{drivers.sort((a, b) => Number(a.RacingNumber) - Number(b.RacingNumber)).map(driver => {
+									const { name, color } = getDriverInfo(Number(driver.RacingNumber));
+									const isSelected = selectedDrivers.has(Number(driver.RacingNumber));
 									return (
-										<div key={driver.driver_number} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => handleDriverSelect(driver.driver_number)}>
+										<div key={Number(driver.RacingNumber)} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => handleDriverSelect(Number(driver.RacingNumber))}>
 											<input
 												type="checkbox"
 												checked={isSelected}
@@ -335,7 +356,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 												className="mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
 											/>
 											<span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></span>
-											{driver.name_acronym || name}
+											{driver?.Tla || name}
 										</div>
 									);
 								})}

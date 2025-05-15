@@ -1,16 +1,16 @@
 import React from 'react';
-import type { Session } from '~/types/session';
-import type { Lap } from '~/types/lap';
+import type { Meeting, Session, Lap } from '~/types';
 import type { DriverInterval } from '~/types/driver-interval';
 
 interface DriverRankingsProps {
+	meeting: Meeting | null;
 	drivers: DriverInterval[];
 	session: Session | null;
 	raceFinished: boolean;
 	lapsData: Lap[];
 }
 
-export const DriverRankings: React.FC<DriverRankingsProps> = ({ drivers, session, raceFinished, lapsData }) => {
+export const DriverRankings: React.FC<DriverRankingsProps> = ({ meeting, drivers, session, raceFinished, lapsData }) => {
 	if (!drivers || drivers.length === 0) {
 		return <div className="p-2 text-gray-500 dark:text-gray-400">No driver data available.</div>;
 	}
@@ -19,10 +19,10 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ drivers, session
 		<div className="flex flex-col h-full justify-start">
 			<div className="flex flex-row justify-between bg-gray-200 dark:bg-gray-700 px-2 py-1 text-gray-800 dark:text-gray-200">
 				<h1 className='text- font-bold'>
-					{session?.location} - {session?.session_name}
+					{meeting?.Location} - {session?.Name}
 				</h1>
 				<h1 className='text- font-bold'>
-					{raceFinished ? "FINISHED" : lapsData.length > 0 ? `Lap ${lapsData[lapsData.length - 1].lap_number}` : ""}
+					{raceFinished ? "FINISHED" : lapsData.length > 0 ? `Lap ${lapsData[lapsData.length - 1].LapNumber}` : ""}
 				</h1>
 			</div>
 			<div>

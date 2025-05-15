@@ -1,50 +1,9 @@
-import type { Meeting } from '../types/meeting';
-import type { Session } from '../types/session';
-import type { Interval, ProcessedInterval } from '../types/interval';
-import type { Driver } from '../types/driver';
-import type { Lap } from '../types/lap';
+import type { Meeting } from '../types/OpenF1Types/meeting';
+import type { Session } from '../types/OpenF1Types/session';
+import type { Interval, ProcessedInterval } from '../types/OpenF1Types/interval';
+import type { Driver } from '../types/OpenF1Types/driver';
+import type { Lap } from '../types/OpenF1Types/lap';
 import { logger } from '../utils/logger';
-
-export async function fetchMeetings(sessionKey?: string | number, year?: number): Promise<Meeting[]> {
-	const currentYear = year || new Date().getFullYear();
-
-	let url = `https://api.openf1.org/v1/meetings?year=${currentYear}`;
-
-	if (sessionKey) {
-		url += `&meeting_key=${sessionKey}`;
-	}
-
-	const response = await fetch(url);
-
-	if (!response.ok) {
-		throw new Error('Failed to fetch meeting data');
-	}
-
-	const data = await response.json();
-	return data;
-}
-
-export async function fetchSessions(sessionKey?: string | number, session_type?: string, year?: number): Promise<Session[]> {
-	const currentYear = year || new Date().getFullYear();
-
-	let url = `https://api.openf1.org/v1/sessions?year=${currentYear}`;
-
-	if (sessionKey) {
-		url += `&session_key=${sessionKey}`;
-	}
-	if (session_type) {
-		url += `&session_type=${session_type}`;
-	}
-
-	const response = await fetch(`${url}`);
-
-	if (!response.ok) {
-		throw new Error('Failed to fetch session data');
-	}
-
-	const data = await response.json();
-	return data;
-}
 
 export async function fetchIntervals(sessionKey: string | number = 'latest', timestamp?: string, finished: boolean = false, delay: number = 0): Promise<Interval[]> {
 	let url = `https://api.openf1.org/v1/intervals?session_key=${sessionKey}`;
@@ -84,18 +43,6 @@ export async function fetchIntervals(sessionKey: string | number = 'latest', tim
 
 	const data = await response.json();
 	logger.log("Interval data fetched");
-	return data;
-}
-
-export async function fetchDrivers(sessionKey: string | number = 'latest'): Promise<Driver[]> {
-	const response = await fetch(`https://api.openf1.org/v1/drivers?session_key=${sessionKey}`);
-
-	if (!response.ok) {
-		throw new Error('Failed to fetch driver data');
-	}
-
-	const data = await response.json();
-	logger.log("Driver data fetched");
 	return data;
 }
 
