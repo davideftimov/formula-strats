@@ -1,15 +1,16 @@
 import type { Route } from "./+types/home";
 import { DriverTimeline } from "~/components/driver-timeline";
 import { Footer } from "~/components/footer";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchMeetings, fetchDrivers, fetchDriverTrackerData, fetchLapData } from '../services/F1Service';
 // import type { ProcessedInterval } from '../types/OpenF1Types/interval';
-import type { Meeting, Session, DriverData, DriverDetails, DriverTracker, Lap } from '~/types';
+import type { Meeting, DriverData, DriverDetails, DriverTracker, Lap, SessionInfo, TimingData } from '~/types';
 import { LapChart } from '~/components/lap-chart';
 import { DriverRankings } from '~/components/driver-rankings';
 import type { DriverInterval } from '~/types/driver-interval';
 import { useSettings } from '~/components/settings';
 import { logger } from '../utils/logger';
+import useSSE from '~/hooks/useSSE';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -65,226 +66,219 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const [drivers, setDrivers] = useState<DriverInterval[]>([]);
-  const [session, setSession] = useState<Session | null>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [driversData, setDriversData] = useState<DriverDetails[]>([]);
+  const [session, setSession] = useState<SessionInfo | null>(null);
+  const [driverData, setDriverData] = useState<DriverData>({});
+  const [driverIntervals, setDriverIntervals] = useState<DriverInterval[]>([]);
+  const [timingData, setTimingData] = useState<TimingData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
-  const [lapsData, setLapsData] = useState<Lap[]>([]);
+  const [lapData, setLapData] = useState<Lap[]>([]);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
   const { delay } = useSettings(); // Use global delay from settings context
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
+  // Replace with your actual SSE endpoint URL
+  const sseUrl = 'http://localhost:8000/f1-stream-sqlmodel/'; // Example URL, ensure this endpoint exists and works
 
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-
-  // Fetch all available sessions once at component mount
-  useEffect(() => {
-    const getAllSessions = async () => {
-      logger.log("Fetching all sessions...");
-      try {
-        const fetchedMeetings = await fetchMeetings();
-        if (fetchedMeetings && fetchedMeetings.length > 0) {
-          setMeetings(fetchedMeetings);
-          // Default to the last session in the array
-          if (fetchedMeetings[fetchedMeetings.length - 1].Sessions[fetchedMeetings[fetchedMeetings.length - 1].Sessions.length - 1].Type === 'Race') {
-            setMeeting(fetchedMeetings[fetchedMeetings.length - 1]);
-            setSession(fetchedMeetings[fetchedMeetings.length - 1].Sessions[fetchedMeetings[fetchedMeetings.length - 1].Sessions.length - 1]);
-          } else {
-            setMeeting(fetchedMeetings[fetchedMeetings.length - 2]);
-            setSession(fetchedMeetings[fetchedMeetings.length - 2].Sessions[fetchedMeetings[fetchedMeetings.length - 2].Sessions.length - 1]);
-          }
-          logger.log("Default session selected:", session);
-        } else {
-          setError('No sessions found');
-        }
-      } catch (err) {
-        setError('Failed to fetch sessions');
-        logger.error(err);
-      }
-    };
-
-    getAllSessions();
+  const handleSessionInfo = useCallback((data: SessionInfo | null) => {
+    console.log('Received Session Info:', data);
+    setSession(data);
   }, []);
 
-  // Fetch drivers when session is available
-  useEffect(() => {
-    if (!session) return;
-    const getDrivers = async () => {
-      logger.log("Fetching drivers...");
-      if (!session) return;
-      try {
-        const drivers = await fetchDrivers(session.Path);
-        logger.log("what")
-        logger.log(drivers)
-        if (drivers) {
-          logger.log("what2")
-          setDriversData(drivers);
-          logger.log("Drivers fetched:", drivers);
-        } else {
-          setError('No drivers found for this session');
-        }
-      } catch (err) {
-        setError('Failed to fetch drivers');
-        logger.error(err);
-      }
-    };
+  const handleLapData = useCallback((data: Lap[] | null) => {
+    console.log('Received Lap Data:', data);
+    if (data === null) {
+      setLapData([]);
+    } else {
+      setLapData(prevData => [...(prevData || []), ...data]);
+    }
+  }, []);
 
-    getDrivers();
-  }, [session]);
+  const handleDriverData = useCallback((data: DriverData | null) => {
+    console.log('Received Driver Data:', data);
+    if (data === null) {
+      setDriverData({});
+    } else {
+      setDriverData(prevData => {
+        const newData = { ...(prevData || {}) };
+        for (const key in data) {
+          newData[key] = {
+            ...(prevData?.[key] || {}),
+            ...data[key],
+          };
+        }
+        return newData;
+      });
+    }
+  }, []);
+
+  const handleTimingData = useCallback((data: TimingData | null) => {
+    console.log('Received Timing Data:', data);
+    if (data === null) {
+      setTimingData(null);
+    } else {
+      setTimingData(prevData => {
+        const newTimingData = {
+          ...(prevData || {}),
+          ...data, // Spread top-level properties from new data
+          Lines: {
+            ...(prevData?.Lines || {}),
+          },
+        };
+
+        if (data.Lines) {
+          for (const key in data.Lines) {
+            newTimingData.Lines[key] = {
+              ...(prevData?.Lines?.[key] || {}),
+              ...data.Lines[key],
+            };
+          }
+        }
+        return newTimingData;
+      });
+    }
+  }, []);
+
+  const { error, isConnected } = useSSE({
+    url: sseUrl,
+    onSessionInfo: handleSessionInfo,
+    onDriverData: handleDriverData,
+    onTimingData: handleTimingData,
+    onLapData: handleLapData,
+  });
 
   // Fetch intervals and laps data when session is available
   useEffect(() => {
-    if (!session || driversData.length === 0) return;
-
-    let intervalId: NodeJS.Timeout;
-    // let previousProcessedIntervals: ProcessedInterval[] = [];
-    let isFinished = false;
-
-    const fetchData = async () => {
-      try {
-        // Check if race is finished
-        isFinished = new Date().toISOString() > session.EndDate;
-
-        let lapsData: Lap[] = [];
-        let intervalsData: DriverTracker[] = [];
-
-        if (!isFinished) {
-          lapsData = await fetchLapData();
-          intervalsData = await fetchDriverTrackerData(session.Path);
-
-          if (intervalsData.length === 0) {
-            if (lapsData.length > 0) {
-              isFinished = true;
-            } else {
-              setIsStarting(true);
-            }
-          } else {
-            setIsStarting(false);
-          }
-        }
-
-        setRaceFinished(isFinished)
-
-        if (isFinished) {
-          lapsData = await fetchLapData();
-          // intervalsData = await fetchIntervals(session.Key, lapsData[lapsData.length - 30].date_start, true);
-          intervalsData = await fetchDriverTrackerData(session.Path);
-        }
-
-        logger.log("Intervals data fetched:", intervalsData);
-        logger.log("Laps data fetched:", lapsData);
-
-        // Store laps data
-        setLapsData(lapsData);
-
-        // Process the interval data
-        // const processedIntervals = processIntervalData(intervalsData, previousProcessedIntervals);
-        // previousProcessedIntervals = processedIntervals;
-
-        // Create a map of driver colors by driver number
-        const driverColorMap = new Map<string, string>();
-        driversData.forEach(driver => {
-          driverColorMap.set(driver.RacingNumber, driver.TeamColour);
-        });
-
-        // Map the intervals to our DriverInterval format
-        const mappedDrivers = intervalsData.map(interval => {
-          const driver = driversData.find(d => d.RacingNumber === interval.RacingNumber);
-          let isLapped = interval.DiffToLeader.includes('+') && interval.DiffToLeader.includes('L');
-          let lapsDown = 0;
-
-          if (isLapped) {
-            // Regex to match "1L", "+1 LAP", or "1 L" formats
-            const match = interval.DiffToLeader.match(/(?:\+|)(\d+)\s*(?:L|LAP)/);
-            lapsDown = match ? parseInt(match[1]) : 0;
-          }
-
-          if (!interval.DiffToLeader) {
-            isLapped = true;
-            lapsDown = 100;
-          }
-
-          return {
-            name: driver?.Tla || `D${interval.RacingNumber}`,
-            color: `#${driverColorMap.get(interval.RacingNumber)}` || '#CCCCCC',
-            gapToLeader: interval.DiffToLeader ? !interval.DiffToLeader.includes('+') && interval.DiffToLeader.includes('L') ? null : (isLapped ? Number.MAX_VALUE : parseTimeToSeconds(interval.DiffToLeader)) : Number.MAX_VALUE,
-            isLapped: isLapped,
-            lapsDown: lapsDown
-          };
-        });
-
-        logger.log("mappedDrivers", mappedDrivers);
-        logger.log("selectedDriver", selectedDriver);
-
-        // Add simulated position after pit stop for selected driver
-        if (selectedDriver) {
-          const driverToPit = mappedDrivers.find(d => d.name === selectedDriver);
-          if (driverToPit) {
-            // Get pit time lost for current circuit
-            const circuitName = meeting?.Circuit.ShortName || '';
-            const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
-            // Add selected penalty to pit time lost
-            const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
-
-            // Create simulated position
-            const simulatedDriver = {
-              ...driverToPit,
-              name: `${driverToPit.name} (Pit)`,
-              color: driverToPit.color + '80', // Add transparency
-              gapToLeader: driverToPit.gapToLeader === null
-                ? pitTimeLost
-                : (driverToPit.gapToLeader + pitTimeLost)
-            };
-
-            // Add to drivers array
-            mappedDrivers.push(simulatedDriver);
-          }
-        }
-
-        // Sort by position (leader first, not lapped by gap, lapped drivers last by laps down)
-        const sortedDrivers = mappedDrivers.sort((a, b) => {
-          if (a.gapToLeader === null) return -1;
-          if (b.gapToLeader === null) return 1;
-          if (a.isLapped && !b.isLapped) return 1;
-          if (!a.isLapped && b.isLapped) return -1;
-          if (a.isLapped && b.isLapped) return a.lapsDown - b.lapsDown;
-          return (a.gapToLeader as number) - (b.gapToLeader as number);
-        });
-
-        setDrivers(sortedDrivers);
+    if (!session || !driverData || !timingData || !timingData.Lines) {
+      setDriverIntervals([]);
+      if (session && driverData && timingData && !timingData.Lines) {
         setLoading(false);
-      } catch (err) {
-        // Just log the error
-        logger.error('Error fetching data:', err);
-        if (loading) setLoading(false);
       }
-    };
-
-    // Fetch immediately
-    fetchData();
-
-    // Only set up interval if race isn't finished
-    if (!isFinished) {
-      intervalId = setInterval(fetchData, 4000);
+      return;
     }
+
+    setLoading(true);
+
+    const driverKeys = Object.keys(timingData.Lines);
+    if (driverKeys.length === 0) {
+      setDriverIntervals([]);
+      setLoading(false);
+      return;
+    }
+
+    const mappedDrivers: DriverInterval[] = driverKeys.map(driverKey => {
+      const driverTimingInfo = timingData.Lines[driverKey];
+      const driverDetails = driverData[driverKey];
+
+      let gapToLeaderStr = driverTimingInfo.GapToLeader;
+      let isLapped = false;
+      let lapsDown = 0;
+
+      let gapInSeconds: number | null = null;
+
+      if (driverTimingInfo.Position === "1") {
+        gapInSeconds = null;
+      } else if (gapToLeaderStr) {
+        if (gapToLeaderStr.includes('L') && gapToLeaderStr.includes('+')) {
+          isLapped = true;
+          gapInSeconds = Number.MAX_VALUE;
+          const lapMatch = gapToLeaderStr.match(/(\d+)\s*(?:L|LAP)/i);
+          if (lapMatch && lapMatch[1]) {
+            lapsDown = parseInt(lapMatch[1], 10);
+          } else if (gapToLeaderStr.toUpperCase().includes('LAP')) {
+            lapsDown = 1;
+          }
+        } else {
+          try {
+            gapInSeconds = parseTimeToSeconds(gapToLeaderStr);
+          } catch (e) {
+            logger.warn(`Could not parse GapToLeader for driver ${driverKey}: ${gapToLeaderStr}`, e);
+            gapInSeconds = Number.MAX_VALUE;
+          }
+        }
+      } else {
+        isLapped = true;
+        lapsDown = 99;
+        gapInSeconds = Number.MAX_VALUE;
+        logger.warn(`GapToLeader is missing for driver ${driverKey} (Position: ${driverTimingInfo.Position})`);
+      }
+
+      const name = driverDetails?.Tla || `D${driverTimingInfo.RacingNumber}`;
+      let color = '#CCCCCC';
+      if (driverDetails?.TeamColour) {
+        color = driverDetails.TeamColour.startsWith('#') ? driverDetails.TeamColour : `#${driverDetails.TeamColour}`;
+      }
+
+      return {
+        name: name,
+        racingNumber: driverTimingInfo.RacingNumber,
+        color: color,
+        gapToLeader: gapInSeconds,
+        isLapped: isLapped,
+        lapsDown: lapsDown
+      };
+    });
+
+    logger.log("mappedDrivers", mappedDrivers);
+    logger.log("selectedDriver", selectedDriver);
+
+    // Add simulated position after pit stop for selected driver
+    if (selectedDriver) {
+      const driverToPit = mappedDrivers.find(d => d.name === selectedDriver);
+      if (driverToPit) {
+        // Get pit time lost for current circuit
+        const circuitName = session.Meeting.Circuit.ShortName || '';
+        const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
+        // Add selected penalty to pit time lost
+        const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
+
+        // Create simulated position
+        const simulatedDriver = {
+          ...driverToPit,
+          name: `${driverToPit.name} (Pit)`,
+          color: driverToPit.color + '80', // Add transparency
+          gapToLeader: driverToPit.gapToLeader === null
+            ? pitTimeLost
+            : (driverToPit.gapToLeader + pitTimeLost)
+        };
+
+        // Add to drivers array
+        mappedDrivers.push(simulatedDriver);
+      }
+    }
+
+    // Sort by position (leader first, not lapped by gap, lapped drivers last by laps down)
+    const sortedDrivers = mappedDrivers.sort((a, b) => {
+      if (a.gapToLeader === null) return -1;
+      if (b.gapToLeader === null) return 1;
+      if (a.isLapped && !b.isLapped) return 1;
+      if (!a.isLapped && b.isLapped) return -1;
+      if (a.isLapped && b.isLapped) {
+        if ((a.lapsDown ?? 0) !== (b.lapsDown ?? 0)) {
+          return (a.lapsDown ?? 0) - (b.lapsDown ?? 0);
+        }
+        return 0;
+      }
+      return (a.gapToLeader as number) - (b.gapToLeader as number);
+    });
+
+    setDriverIntervals(sortedDrivers);
+    setLoading(false);
+
 
     // Clean up
     return () => {
-      if (intervalId) clearInterval(intervalId);
     };
-  }, [session, driversData, selectedDriver, selectedPenalty, delay]); // Add delay to dependency array
+  }, [session, timingData, driverData, selectedDriver, selectedPenalty, delay]); // Add delay to dependency array
 
   if (loading) {
     return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">Loading driver data...</div>;
   }
 
   if (error) {
-    return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: {error}</div>;
+    return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: </div>;
   }
 
   if (isStarting) {
@@ -298,13 +292,12 @@ export default function Home() {
         <div className="lg:flex"> {/* h-full */}
           {/* Left column - Driver Rankings */}
           <div className="lg:w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
-            {drivers.length > 0 && (
+            {driverIntervals.length > 0 && (
               <DriverRankings
-                meeting={meeting}
-                drivers={drivers}
+                drivers={driverIntervals}
                 session={session}
                 raceFinished={raceFinished}
-                lapsData={lapsData}
+                lapsData={lapData}
               />
             )}
           </div>
@@ -312,7 +305,7 @@ export default function Home() {
           {/* Right column - Selectors, Timeline, and Charts */}
           <div className="lg:w-4/5">
             {/* Driver timeline */}
-            {drivers.length > 0 && (
+            {driverIntervals.length > 0 && (
               <div className='px-6 h-[35vh] pt-2'>
                 {/* Driver and Penalty selectors */}
                 <div className="bg-transparent flex flex-row items-center justify-center ml-2 space-x-2">
@@ -322,7 +315,7 @@ export default function Home() {
                     onChange={(e) => setSelectedDriver(e.target.value || null)}
                   >
                     <option value="">Pit driver</option>
-                    {drivers
+                    {driverIntervals
                       .filter(driver => !driver.name.includes('(Pit)')) // Exclude simulated driver from pit selection
                       .map((driver, index) => (
                         <option key={index} value={driver.name}>
@@ -345,14 +338,14 @@ export default function Home() {
                     <option value={25}>+25s</option>
                   </select>
                 </div>
-                <DriverTimeline drivers={drivers} />
+                <DriverTimeline drivers={driverIntervals} />
               </div>
             )}
 
             {/* Lap Chart */}
-            {lapsData.length > 0 && (
+            {lapData.length > 0 && (
               <div className="ml-2 h-[65vh]">
-                <LapChart laps={lapsData} drivers={driversData} />
+                <LapChart laps={lapData} drivers={Object.values(driverData)} />
               </div>
             )}
           </div>
