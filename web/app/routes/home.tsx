@@ -80,7 +80,7 @@ export default function Home() {
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
   // Replace with your actual SSE endpoint URL
-  const sseUrl = 'http://localhost:8000/f1-stream-sqlmodel/'; // Example URL, ensure this endpoint exists and works
+  const sseUrl = 'http://localhost:8000/f1-stream/'; // Example URL, ensure this endpoint exists and works
 
   const handleSessionInfo = useCallback((data: SessionInfo | null) => {
     console.log('Received Session Info:', data);

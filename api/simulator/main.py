@@ -6,8 +6,8 @@ from pathlib import Path
 
 app = FastAPI(title="F1 Data Simulator")
 
-DATA_FILE = Path(__file__).parent / "test_data2.txt"
-MESSAGE_DELAY = 0.05  # Adjust as needed
+DATA_FILE = Path(__file__).parent / "messages5.log"
+MESSAGE_DELAY = 0.1 # Adjust as needed
 
 @app.websocket("/ws/f1-data")
 async def websocket_endpoint(websocket: WebSocket):
