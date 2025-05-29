@@ -2,60 +2,35 @@
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 
-from sqlmodel import Session # Add this if not already present
+import redis.asyncio as redis
 
-# --- Make sure these imports match your current setup ---
-from .database import SessionDep, create_db_and_tables, engine # SQLModel engine
-# from .schedule_manager import manage_f1_connection, load_schedule # If using scheduler
-from .f1_websocket_client import f1_data_listener 
-# --- End imports section ---
+from fastapi.responses import StreamingResponse
+from fastapi import Request, Depends
+import json
 
-
-# Global variable to hold the F1 listener task
-f1_listener_task_handle: Optional[asyncio.Task] = None
-# schedule_manager_task_handle: Optional[asyncio.Task] = None # If using scheduler
+STOPWORD = "STOP"
+REDIS_CHANNEL_NAME = "channel:1"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ===== Startup Logic =====
-    print("Application startup (SQLModel): Initializing resources...")
-    global f1_listener_task_handle
+    print("Application startup: Initializing resources...")
 
-    print("Creating SQLModel database tables (if they don't exist)...")
-    create_db_and_tables()
-    print("SQLModel Database tables checked/created.")
-    
-    if not ('schedule_manager_task_handle' in globals() and globals()['schedule_manager_task_handle']):
-        print("Starting F1 Data Listener task directly (SQLModel)...")
-        f1_listener_task_handle = asyncio.create_task(f1_data_listener())
-        print("F1 Data Listener task started (SQLModel - connecting to simulator/F1 source).")
+    redis_client = redis.from_url('redis://localhost:16379')
+    app.state.redis = redis_client
 
-    print("Application startup complete (SQLModel).")
+    print("Application startup complete.")
     yield
     # ===== Shutdown Logic =====
-    print("Application shutdown (SQLModel): Cleaning up resources...")
+    print("Application shutdown: Cleaning up resources...")
 
-    if f1_listener_task_handle and not f1_listener_task_handle.done():
-        print("Cancelling direct F1 Data Listener task (SQLModel)...")
-        f1_listener_task_handle.cancel()
-        try:
-            await f1_listener_task_handle
-        except asyncio.CancelledError:
-            print("Direct F1 Data Listener task successfully cancelled (SQLModel).")
-        except Exception as e:
-            print(f"Error during direct F1 Data Listener task cancellation (SQLModel): {e}")
-
-    if engine: # SQLModel engine from .database
-        print("Disposing of SQLModel database engine...")
-        engine.dispose() # Dispose the async engine
-        print("SQLModel Database engine disposed.")
+    await app.state.redis.aclose()
     
-    print("Application shutdown complete (SQLModel).")
+    print("Application shutdown complete.")
 
-app = FastAPI(title="F1 Live Data Backend (SQLModel)", lifespan=lifespan)
+app = FastAPI(title="F1 Live Data Backend", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,112 +39,97 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Your SSE and other API endpoints will go here ---
-# Example SSE endpoint (conceptual, needs full implementation)
-from .models import F1MessageBase, LapBase
-from .crud import get_f1_messages, get_laps
-from fastapi.responses import StreamingResponse
-from fastapi import Request, Depends
-from datetime import datetime, timedelta, timezone
-
-async def sse_sqlmodel_event_stream(
-    db: SessionDep,
-    delay_seconds: int = 0,
-    # ... other params
-):
-    last_sent_backend_timestamp = datetime.min.replace(tzinfo=timezone.utc)
-
-    # 1. Send historical data
-    effective_current_time = datetime.now(timezone.utc) - timedelta(seconds=delay_seconds)
-    initial_messages = get_f1_messages(
-        session=db,
-        until_backend_timestamp=effective_current_time,
-        limit=10000 # Add a sensible limit or pagination for very large histories
-    )
-    initial_laps = get_laps(
-        session=db,
-        until_backend_timestamp=effective_current_time,
-        limit=10000 # Add a sensible limit or pagination for very large histories
-    )
-    for msg_model in initial_messages:
-        # Convert SQLModel instance to dict for JSON serialization, or use .model_dump_json()
-        event_data = F1MessageBase.model_validate(msg_model).model_dump_json()
-        yield f"data: {event_data}\n\n"
-        
-        retrieved_timestamp = msg_model.backend_received_at
-        if retrieved_timestamp.tzinfo is None:
-            retrieved_timestamp = retrieved_timestamp.replace(tzinfo=timezone.utc)
-
-        if retrieved_timestamp > last_sent_backend_timestamp:
-             last_sent_backend_timestamp = retrieved_timestamp
-        await asyncio.sleep(0.001)
-
-    # Send initial laps
-    lap_payload = [LapBase.model_validate(lap).model_dump() for lap in initial_laps]
-    lap_event_data = F1MessageBase(
-        type="LapData",
-        payload=lap_payload
-    ).model_dump_json()
-    yield f"data: {lap_event_data}\n\n"
-    last_sent_lap_timestamp = effective_current_time
-    await asyncio.sleep(0.001)
-    
-    # 2. Stream new data
-    while True:
-        threshold_time = datetime.now(timezone.utc) - timedelta(seconds=delay_seconds)
-        new_messages = get_f1_messages(
-            session=db,
-            since_backend_timestamp=last_sent_backend_timestamp,
-            until_backend_timestamp=threshold_time, # Only send if older than (now - delay)
-            limit=1000
-        )
-        if new_messages:
-            for msg_model in new_messages:
-                event_data = F1MessageBase.model_validate(msg_model).model_dump_json()
-                yield f"data: {event_data}\n\n"
-                
-                retrieved_timestamp = msg_model.backend_received_at
-                if retrieved_timestamp.tzinfo is None:
-                    retrieved_timestamp = retrieved_timestamp.replace(tzinfo=timezone.utc)
-
-                if retrieved_timestamp > last_sent_backend_timestamp:
-                    last_sent_backend_timestamp = retrieved_timestamp
-                await asyncio.sleep(0.001)
-
-        # Stream new laps
-        new_laps = get_laps(
-            session=db,
-            since_backend_timestamp=last_sent_lap_timestamp,
-            until_backend_timestamp=threshold_time,
-            limit=1000
-        )
-        last_sent_lap_timestamp = threshold_time
-        if new_laps:
-            lap_payload = [LapBase.model_validate(lap).model_dump() for lap in new_laps]
-            lap_event_data = F1MessageBase(
-                type="LapData",
-                payload=lap_payload
-            ).model_dump_json()
-            yield f"data: {lap_event_data}\n\n"
-
-        await asyncio.sleep(0.1) # Poll DB
-
-@app.get("/f1-stream-sqlmodel/", response_model=None) # SSE doesn't use response_model here
-async def stream_f1_data_sqlmodel(
+@app.get("/f1-stream/", response_model=None) # SSE doesn't use response_model here
+async def stream_f1_data(
     request: Request,
-    session: SessionDep,
-    delay_seconds: int = 0,
 ):
-    # ... (similar to previous SSE endpoint, but using sse_sqlmodel_event_stream)
     async def event_generator():
+        redis_client = None
+        pubsub = None
         try:
-            async for event_chunk in sse_sqlmodel_event_stream(session, delay_seconds):
+            redis_client = request.app.state.redis
+
+            # Define keys for initial data
+            initial_data_keys = ["DriverList", "SessionInfo", "TimingData"]
+            for key in initial_data_keys:
+                try:
+                    message_data_bytes = await redis_client.get(key)
+                    if message_data_bytes:
+                        # decoded_data = json.loads(hash_data)
+                        message_data_str = message_data_bytes.decode('utf-8')
+
+                        # json_data = json.dumps({"type": key, "payload": decoded_data})
+                        # print(f"(SSE Stream) Sending initial data for {key}: {decoded_data}")
+                        yield f"data: {message_data_str}\n\n"
+                    else:
+                        print(f"(SSE Stream) No initial data found for {key}")
+                except Exception as e:
+                    print(f"Error retrieving initial data for {key} from Redis: {e}")
+                    # yield f"event: error\ndata: Error fetching initial {key}: {str(e)}\n\n"
+            
+            laps = await redis_client.lrange("LapData", 0, -1)
+            if laps:
+                laps = [el.decode('utf-8') for el in laps]
+                laps = [json.loads(lap) for lap in laps]
+                laps_json = json.dumps({"type": "LapData", "payload": laps})
+                yield f"data: {laps_json}\n\n"
+            # Connect to Redis
+            # Ensure decode_responses=False if your publisher sends bytes and you want to decode manually
+            # redis_client = redis.Redis.from_url("redis://localhost:6379", decode_responses=False)
+            pubsub = redis_client.pubsub()
+            await pubsub.subscribe(REDIS_CHANNEL_NAME)
+            print(f"SSE stream subscribed to Redis channel: {REDIS_CHANNEL_NAME}")
+
+            while True:
                 if await request.is_disconnected():
-                    print("Client disconnected from SSE stream (SQLModel).")
+                    print("Client disconnected from SSE stream (Redis).")
                     break
-                yield event_chunk
+
+                # Listen for messages with a timeout to allow checking for client disconnect
+                # and to prevent blocking indefinitely if no messages are coming.
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                
+                if message is not None and message.get("type") == "message":
+                    message_data_bytes = message["data"]
+                    # Assuming message['data'] is bytes, similar to the original reader function
+                    message_data_str = message_data_bytes.decode('utf-8')
+                    
+                    # print(f"(SSE Stream) Message Received: {message_data_str}") # For logging
+
+                    if message_data_str == STOPWORD:
+                        print("(SSE Stream) STOPWORD received, closing stream.")
+                        # Optionally, send a final message to the client indicating stop
+                        # yield f"event: stop\ndata: Server stopping stream\n\n"
+                        break
+                    
+                    # Format as SSE
+                    yield f"data: {message_data_str}\n\n"
+                # If message is None (due to timeout), the loop continues, checks disconnect, and tries again.
+
         except asyncio.CancelledError:
-            print("SSE stream cancelled on server side (SQLModel).")
+            print("SSE stream cancelled on server side (Redis).")
+        except redis.exceptions.ConnectionError as e:
+            print(f"SSE stream: Redis connection error: {e}")
+            # Optionally, yield an error event to the client
+            yield f"event: error\ndata: Redis connection error: {str(e)}\n\n"
+        except Exception as e:
+            print(f"Error in SSE event_generator (Redis): {e}")
+            # Optionally, yield an error event to the client
+            yield f"event: error\ndata: Internal server error: {str(e)}\n\n"
         finally:
-            print("SSE Stream closed (SQLModel).")
+            # print("SSE Stream closing (Redis)...")
+            # if pubsub:
+            #     try:
+            #         await pubsub.unsubscribe(REDIS_CHANNEL_NAME)
+            #         print(f"Unsubscribed from Redis channel: {REDIS_CHANNEL_NAME}")
+            #     except Exception as e:
+            #         print(f"Error unsubscribing from Redis channel: {e}")
+            #     finally:
+            #         try:
+            #             await pubsub.close() # Close the pubsub instance itself
+            #             print("Redis PubSub instance closed.")
+            #         except Exception as e:
+            #             print(f"Error closing Redis PubSub instance: {e}")
+            print("SSE Stream closed (Redis).")
+            
     return StreamingResponse(event_generator(), media_type="text/event-stream")
