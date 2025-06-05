@@ -345,7 +345,7 @@ export default function Home() {
             {/* Lap Chart */}
             {lapData.length > 0 && (
               <div className="ml-2 h-[65vh]">
-                <LapChart laps={lapData} drivers={Object.values(driverData)} />
+                <LapChart laps={lapData} drivers={driverData} />
               </div>
             )}
           </div>
