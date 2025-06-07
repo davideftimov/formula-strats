@@ -16,24 +16,6 @@ export interface DriverData {
 	[Key: string]: DriverDetails;
 }
 
-export interface DriverTracker {
-	Position: string;
-	ShowPosition: boolean;
-	RacingNumber: string;
-	LapTime: string;
-	LapState: number;
-	DiffToAhead: string;    // e.g., "LAP 57" or "+4.630". Mixed type: status or time delta.
-	DiffToLeader: string;   // e.g., "LAP 57" or "+4.630". Mixed type: status or time delta.
-	OverallFastest: boolean;
-	PersonalFastest: boolean;
-}
-
-export interface Lap {
-	RacingNumber: string;
-	LapNumber: number;
-	LapTime: string;
-}
-
 export type TimingData = {
 	NoEntries?: number[];
 	SessionPart?: number;
@@ -106,7 +88,25 @@ export type PersonalBestLapTime = {
 
 export interface F1Message {
 	type: string; // e.g., "DriverTracker", "LapData"
-	payload: DriverData | TimingData | SessionInfo | Lap[]; // The data can be of type DriverData, TimingData, or a string (e.g., "LAP 57")
+	payload: DriverData | TimingData | SessionInfo | Lap[] | WeatherData; // The data can be of type DriverData, TimingData, or a string (e.g., "LAP 57")
+}
+
+export interface Lap {
+	RacingNumber: string;
+	LapNumber: number;
+	LapTime: string;
+}
+
+export interface DriverTracker {
+	Position: string;
+	ShowPosition: boolean;
+	RacingNumber: string;
+	LapTime: string;
+	LapState: number;
+	DiffToAhead: string;    // e.g., "LAP 57" or "+4.630". Mixed type: status or time delta.
+	DiffToLeader: string;   // e.g., "LAP 57" or "+4.630". Mixed type: status or time delta.
+	OverallFastest: boolean;
+	PersonalFastest: boolean;
 }
 
 
@@ -155,3 +155,21 @@ export interface Meeting {
 // 	Year: number;
 // 	Meetings: Meeting[];
 // }
+
+export interface WeatherData {
+	AirTemp: string;
+	Humidity: string;
+	Pressure: string;
+	Rainfall: string;
+	TrackTemp: string;
+	WindDirection: string;
+	WindSpeed: string;
+}
+
+
+export interface F1Data {
+	SessionInfo: SessionInfo;
+	DriverData: DriverData;
+	TimingData: TimingData;
+	LapData: Lap[];
+}

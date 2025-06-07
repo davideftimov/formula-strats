@@ -1,33 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Session } from 'react-router';
-import type { F1Message, SessionInfo, DriverData, TimingData, Lap } from '~/types/index';
-
-// Type guard for TimingData
-// Assumes TimingData has 'Lines' and 'Withheld' properties.
-function isTimingData(data: any): data is TimingData {
-	return data && typeof data === 'object' && 'Lines' in data && 'Withheld' in data;
-}
-
-// Type guard for DriverData
-// Assumes DriverData is an object of DriverDetails, and not TimingData.
-// It also checks for common properties of DriverDetails in the first entry if the object is not empty.
-function isDriverData(data: any): data is DriverData {
-	if (data && typeof data === 'object' && !isTimingData(data)) {
-		// An empty object could be valid initial DriverData.
-		const keys = Object.keys(data);
-		if (keys.length === 0) return true;
-
-		// If not empty, check the structure of the first item, expecting DriverDetails.
-		const firstValue = data[keys[0]];
-		return (
-			firstValue &&
-			typeof firstValue === 'object' &&
-			'RacingNumber' in firstValue &&
-			'FullName' in firstValue
-		);
-	}
-	return false;
-}
+import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData } from '~/types/index';
 
 interface UseSSEProps {
 	url: string;
@@ -35,9 +7,10 @@ interface UseSSEProps {
 	onDriverData: (data: DriverData | null) => void;
 	onTimingData: (data: TimingData | null) => void;
 	onLapData: (data: Lap[] | null) => void;
+	onWeatherData: (data: WeatherData | null) => void;
 }
 
-const useSSE = ({ url, onSessionInfo, onDriverData, onTimingData, onLapData }: UseSSEProps) => {
+const useSSE = ({ url, onSessionInfo, onDriverData, onTimingData, onLapData, onWeatherData }: UseSSEProps) => {
 	const [error, setError] = useState<Event | string | null>(null);
 	const [isConnected, setIsConnected] = useState<boolean>(false);
 
@@ -52,6 +25,8 @@ const useSSE = ({ url, onSessionInfo, onDriverData, onTimingData, onLapData }: U
 		onSessionInfo(null)
 		onDriverData(null);
 		onTimingData(null);
+		onLapData(null);
+		onWeatherData(null);
 		setError(null);
 		setIsConnected(false); // Initially not connected
 
@@ -87,6 +62,10 @@ const useSSE = ({ url, onSessionInfo, onDriverData, onTimingData, onLapData }: U
 					onLapData(messagePayload as Lap[]);
 					console.log('SSE LEVEL LAP DATA PARSED:', parsedMessage);
 					console.log('SSE LEVEL LAP DATA:', messagePayload);
+				} else if (parsedMessage.type === 'WeatherData') {
+					onWeatherData(messagePayload as WeatherData);
+					console.log('SSE LEVEL WEATHER DATA PARSED:', parsedMessage);
+					console.log('SSE LEVEL WEATHER DATA:', messagePayload);
 				} else {
 					console.warn(
 						`Received SSE message with unhandled data structure. Type: ${parsedMessage.type}`,
