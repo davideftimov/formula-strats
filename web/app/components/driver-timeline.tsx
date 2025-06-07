@@ -10,8 +10,8 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers }) => {
 	const maxGap = drivers.length > 0
 		? Math.max(
 			...drivers
-				.filter((driver) => !driver.isLapped && driver.gapToLeader !== null)
-				.map((driver) => driver.gapToLeader as number)
+				.filter((driver) => driver.gapInSeconds !== -1)
+				.map((driver) => driver.gapInSeconds as number)
 		)
 		: 0;
 
@@ -23,11 +23,11 @@ export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers }) => {
 			{/* Driver dots and labels */}
 			{(() => {
 				// Filter non-lapped drivers and calculate positions
-				const timelineDrivers = drivers.filter(d => !d.isLapped);
+				const timelineDrivers = drivers.filter(d => d.gapInSeconds !== -1);
 				const driverPositions = timelineDrivers.map((driver, index) => {
-					const position = driver.gapToLeader === null
+					const position = driver.gapInSeconds === null
 						? 100  // Leader at the right edge
-						: Math.max(0, Math.min(100, 100 - ((driver.gapToLeader / maxGap) * 100))); // Scale to 95% to avoid edge overlap
+						: Math.max(0, Math.min(100, 100 - ((driver.gapInSeconds / maxGap) * 100))); // Scale to 95% to avoid edge overlap
 
 					return {
 						driver,

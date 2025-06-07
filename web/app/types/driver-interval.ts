@@ -1,8 +1,10 @@
 export interface DriverInterval {
+	racingNumber: string;
+	position: number;
+	displayPosition: string;
 	name: string;
-	racingNumber: string; // Added to store the driver's racing number
 	color: string;
-	gapToLeader: number | null; // null means this is the leader
-	isLapped?: boolean;
-	lapsDown?: number;
+	gapDisplay: string;
+	gapInSeconds: number;
+	isSpecialStatus: boolean,
 }

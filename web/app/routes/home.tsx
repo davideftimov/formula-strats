@@ -1,16 +1,17 @@
 import type { Route } from "./+types/home";
 import { DriverTimeline } from "~/components/driver-timeline";
 import { Footer } from "~/components/footer";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { fetchMeetings, fetchDrivers, fetchDriverTrackerData, fetchLapData } from '../services/F1Service';
 // import type { ProcessedInterval } from '../types/OpenF1Types/interval';
-import type { Meeting, DriverData, DriverDetails, DriverTracker, Lap, SessionInfo, TimingData } from '~/types';
+import type { Meeting, DriverData, DriverDetails, DriverTracker, Lap, SessionInfo, TimingData, WeatherData } from '~/types';
 import { LapChart } from '~/components/lap-chart';
 import { DriverRankings } from '~/components/driver-rankings';
 import type { DriverInterval } from '~/types/driver-interval';
 import { useSettings } from '~/components/settings';
 import { logger } from '../utils/logger';
 import useSSE from '~/hooks/useSSE';
+import { Nav } from '~/components/nav';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -68,16 +69,14 @@ function parseTimeToSeconds(timeStr: string): number {
 export default function Home() {
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [driverData, setDriverData] = useState<DriverData>({});
-  const [driverIntervals, setDriverIntervals] = useState<DriverInterval[]>([]);
   const [timingData, setTimingData] = useState<TimingData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  // const [error, setError] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
   const [lapData, setLapData] = useState<Lap[]>([]);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
   const { delay } = useSettings(); // Use global delay from settings context
   const [isStarting, setIsStarting] = useState<boolean>(false);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
 
   // Replace with your actual SSE endpoint URL
   const sseUrl = 'http://localhost:8000/f1-stream/'; // Example URL, ensure this endpoint exists and works
@@ -141,137 +140,118 @@ export default function Home() {
     }
   }, []);
 
+  const handleWeatherData = useCallback((data: WeatherData | null) => {
+    console.log('Received Weather data:', data);
+    setWeatherData(data);
+  }, []);
+
   const { error, isConnected } = useSSE({
     url: sseUrl,
     onSessionInfo: handleSessionInfo,
     onDriverData: handleDriverData,
     onTimingData: handleTimingData,
     onLapData: handleLapData,
+    onWeatherData: handleWeatherData,
   });
 
-  // Fetch intervals and laps data when session is available
-  useEffect(() => {
-    if (!session || !driverData || !timingData || !timingData.Lines) {
-      setDriverIntervals([]);
-      if (session && driverData && timingData && !timingData.Lines) {
-        setLoading(false);
-      }
-      return;
-    }
+  const loading = !session || !driverData || !timingData;
 
-    setLoading(true);
+  const mappedDrivers = useMemo(() => {
+    if (!session || !driverData || !timingData || !timingData.Lines) {
+      return [];
+    }
 
     const driverKeys = Object.keys(timingData.Lines);
     if (driverKeys.length === 0) {
-      setDriverIntervals([]);
-      setLoading(false);
-      return;
+      return [];
     }
 
-    const mappedDrivers: DriverInterval[] = driverKeys.map(driverKey => {
-      const driverTimingInfo = timingData.Lines[driverKey];
-      const driverDetails = driverData[driverKey];
+    let currentDrivers: DriverInterval[] = driverKeys.map(racingNumber => {
+      const driverTimingInfo = timingData.Lines[racingNumber];
+      const driverDetails = driverData[racingNumber];
 
-      let gapToLeaderStr = driverTimingInfo.GapToLeader;
-      let isLapped = false;
-      let lapsDown = 0;
+      if (!driverDetails) {
+        logger.warn(`Driver details not found for racing number: ${racingNumber}`);
+        // TO DO
+      }
 
-      let gapInSeconds: number | null = null;
+      let name = driverDetails.Tla;
+      const isRetired = driverTimingInfo.Retired;
+      const isStopped = driverTimingInfo.Stopped;
+      const isSpecialStatus = isRetired || isStopped;
+
+      let gapDisplay: string;
+      let gapInSeconds: number = -1;
 
       if (driverTimingInfo.Position === "1") {
-        gapInSeconds = null;
-      } else if (gapToLeaderStr) {
-        if (gapToLeaderStr.includes('L') && gapToLeaderStr.includes('+')) {
-          isLapped = true;
-          gapInSeconds = Number.MAX_VALUE;
-          const lapMatch = gapToLeaderStr.match(/(\d+)\s*(?:L|LAP)/i);
-          if (lapMatch && lapMatch[1]) {
-            lapsDown = parseInt(lapMatch[1], 10);
-          } else if (gapToLeaderStr.toUpperCase().includes('LAP')) {
-            lapsDown = 1;
-          }
+        gapDisplay = "Leader";
+        gapInSeconds = 0;
+      } else if (driverTimingInfo.GapToLeader) {
+        gapDisplay = driverTimingInfo.GapToLeader;
+        if (driverTimingInfo.GapToLeader.includes('L')) {
+          // isLapped = true; // Value assigned but not used
+          gapInSeconds = -1;
         } else {
           try {
-            gapInSeconds = parseTimeToSeconds(gapToLeaderStr);
+            gapInSeconds = parseTimeToSeconds(driverTimingInfo.GapToLeader);
           } catch (e) {
-            logger.warn(`Could not parse GapToLeader for driver ${driverKey}: ${gapToLeaderStr}`, e);
-            gapInSeconds = Number.MAX_VALUE;
+            logger.warn(`Could not parse GapToLeader for driver ${racingNumber}: ${driverTimingInfo.GapToLeader}`, e);
+            gapInSeconds = -1;
           }
         }
       } else {
-        isLapped = true;
-        lapsDown = 99;
-        gapInSeconds = Number.MAX_VALUE;
-        logger.warn(`GapToLeader is missing for driver ${driverKey} (Position: ${driverTimingInfo.Position})`);
-      }
-
-      const name = driverDetails?.Tla || `D${driverTimingInfo.RacingNumber}`;
-      let color = '#CCCCCC';
-      if (driverDetails?.TeamColour) {
-        color = driverDetails.TeamColour.startsWith('#') ? driverDetails.TeamColour : `#${driverDetails.TeamColour}`;
+        gapDisplay = "Unknown";
+        gapInSeconds = -1;
+        logger.warn(`GapToLeader is missing for driver ${racingNumber} (Position: ${driverTimingInfo.Position})`);
       }
 
       return {
+        racingNumber: racingNumber,
+        position: parseInt(driverTimingInfo.Position, 10),
+        displayPosition: driverTimingInfo.Position,
         name: name,
-        racingNumber: driverTimingInfo.RacingNumber,
-        color: color,
-        gapToLeader: gapInSeconds,
-        isLapped: isLapped,
-        lapsDown: lapsDown
+        color: `#${driverDetails.TeamColour}`,
+        gapDisplay: gapDisplay,
+        gapInSeconds: gapInSeconds,
+        isSpecialStatus: isSpecialStatus,
       };
-    });
+    }).sort((a, b) => a.position - b.position);
 
-    logger.log("mappedDrivers", mappedDrivers);
-    logger.log("selectedDriver", selectedDriver);
+    logger.log("mappedDrivers before pit sim", [...currentDrivers]);
+    logger.log("selectedDriver for pit sim", selectedDriver);
 
-    // Add simulated position after pit stop for selected driver
     if (selectedDriver) {
-      const driverToPit = mappedDrivers.find(d => d.name === selectedDriver);
+      const driverToPit = currentDrivers.find(d => d.name === selectedDriver);
       if (driverToPit) {
-        // Get pit time lost for current circuit
         const circuitName = session.Meeting.Circuit.ShortName || '';
         const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
-        // Add selected penalty to pit time lost
         const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
 
-        // Create simulated position
         const simulatedDriver = {
           ...driverToPit,
           name: `${driverToPit.name} (Pit)`,
-          color: driverToPit.color + '80', // Add transparency
-          gapToLeader: driverToPit.gapToLeader === null
-            ? pitTimeLost
-            : (driverToPit.gapToLeader + pitTimeLost)
+          color: driverToPit.color + '80',
+          gapInSeconds: driverToPit.gapInSeconds + pitTimeLost,
+          gapDisplay: `+${pitTimeLost.toFixed(1)}s`,
+          isSpecialStatus: true,
         };
-
-        // Add to drivers array
-        mappedDrivers.push(simulatedDriver);
+        currentDrivers.push(simulatedDriver);
+        currentDrivers.sort((a, b) => a.gapInSeconds - b.gapInSeconds);
       }
     }
 
-    // Sort by position (leader first, not lapped by gap, lapped drivers last by laps down)
-    const sortedDrivers = mappedDrivers.sort((a, b) => {
-      if (a.gapToLeader === null) return -1;
-      if (b.gapToLeader === null) return 1;
-      if (a.isLapped && !b.isLapped) return 1;
-      if (!a.isLapped && b.isLapped) return -1;
-      if (a.isLapped && b.isLapped) {
-        if ((a.lapsDown ?? 0) !== (b.lapsDown ?? 0)) {
-          return (a.lapsDown ?? 0) - (b.lapsDown ?? 0);
-        }
-        return 0;
-      }
-      return (a.gapToLeader as number) - (b.gapToLeader as number);
-    });
-
-    setDriverIntervals(sortedDrivers);
-    setLoading(false);
+    logger.log("Final computed drivers in useMemo", currentDrivers);
+    return currentDrivers;
+  }, [session, timingData, driverData, selectedDriver, selectedPenalty]);
 
 
-    // Clean up
-    return () => {
-    };
-  }, [session, timingData, driverData, selectedDriver, selectedPenalty, delay]); // Add delay to dependency array
+  function handleDriverChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    setSelectedDriver(event.target.value || null)
+  }
+
+  function handlePenaltyChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    setSelectedPenalty(Number(event.target.value));
+  }
 
   if (loading) {
     return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">Loading driver data...</div>;
@@ -288,13 +268,28 @@ export default function Home() {
   return (
     <>
       <div className="w-full lg:h-[100vh] font-sans">
+        <div className="h-[4vh]">
+          {session && (
+            <Nav
+              session={session}
+              raceFinished={raceFinished}
+              lapsData={lapData}
+              weatherData={weatherData}
+              selectedPenalty={selectedPenalty}
+              handlePenaltyChange={handlePenaltyChange}
+              selectedDriver={selectedDriver}
+              handleDriverChange={handleDriverChange}
+              drivers={mappedDrivers}
+            />
+          )}
+        </div>
         {/* Two-column layout container */}
         <div className="lg:flex"> {/* h-full */}
           {/* Left column - Driver Rankings */}
           <div className="lg:w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
-            {driverIntervals.length > 0 && (
+            {mappedDrivers.length > 0 && (
               <DriverRankings
-                drivers={driverIntervals}
+                drivers={mappedDrivers}
                 session={session}
                 raceFinished={raceFinished}
                 lapsData={lapData}
@@ -305,46 +300,15 @@ export default function Home() {
           {/* Right column - Selectors, Timeline, and Charts */}
           <div className="lg:w-4/5">
             {/* Driver timeline */}
-            {driverIntervals.length > 0 && (
-              <div className='px-6 h-[35vh] pt-2'>
-                {/* Driver and Penalty selectors */}
-                <div className="bg-transparent flex flex-row items-center justify-center ml-2 space-x-2">
-                  <select
-                    className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-2 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
-                    value={selectedDriver || ""}
-                    onChange={(e) => setSelectedDriver(e.target.value || null)}
-                  >
-                    <option value="">Pit driver</option>
-                    {driverIntervals
-                      .filter(driver => !driver.name.includes('(Pit)')) // Exclude simulated driver from pit selection
-                      .map((driver, index) => (
-                        <option key={index} value={driver.name}>
-                          {driver.name}
-                        </option>
-                      ))}
-                  </select>
-                  {/* Penalty Selector */}
-                  <select
-                    className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-2 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
-                    value={selectedPenalty}
-                    onChange={(e) => setSelectedPenalty(Number(e.target.value))}
-                    disabled={!selectedDriver} // Disable if no driver is selected
-                  >
-                    <option value={0}>No Penalty</option>
-                    <option value={5}>+5s</option>
-                    <option value={10}>+10s</option>
-                    <option value={15}>+15s</option>
-                    <option value={20}>+20s</option>
-                    <option value={25}>+25s</option>
-                  </select>
-                </div>
-                <DriverTimeline drivers={driverIntervals} />
+            {mappedDrivers.length > 0 && (
+              <div className='px-6 h-[25vh] pt-2'>
+                <DriverTimeline drivers={mappedDrivers} />
               </div>
             )}
 
             {/* Lap Chart */}
             {lapData.length > 0 && (
-              <div className="ml-2 h-[65vh]">
+              <div className="ml-2 h-[71vh]">
                 <LapChart laps={lapData} drivers={driverData} />
               </div>
             )}
