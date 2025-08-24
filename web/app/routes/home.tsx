@@ -1,10 +1,7 @@
 import type { Route } from "./+types/home";
 import { DriverTimeline } from "~/components/driver-timeline";
 import { Footer } from "~/components/footer";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { fetchMeetings, fetchDrivers, fetchDriverTrackerData, fetchLapData } from '../services/F1Service';
-// import type { ProcessedInterval } from '../types/OpenF1Types/interval';
-import type { Meeting, DriverData, DriverDetails, DriverTracker, Lap, SessionInfo, TimingData, WeatherData } from '~/types';
+import React, { useState, useMemo } from 'react';
 import { LapChart } from '~/components/lap-chart';
 import { DriverRankings } from '~/components/driver-rankings';
 import type { DriverInterval } from '~/types/driver-interval';
@@ -12,6 +9,8 @@ import { useSettings } from '~/components/settings';
 import { logger } from '../utils/logger';
 import useSSE from '~/hooks/useSSE';
 import { Nav } from '~/components/nav';
+import { useStore } from '@tanstack/react-store';
+import { f1Store } from '~/store/f1-store';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -67,97 +66,24 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [driverData, setDriverData] = useState<DriverData>({});
-  const [timingData, setTimingData] = useState<TimingData | null>(null);
+  const { sessionInfo, driverData, timingData, lapData, weatherData } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
-  const [lapData, setLapData] = useState<Lap[]>([]);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
   const { delay } = useSettings(); // Use global delay from settings context
   const [isStarting, setIsStarting] = useState<boolean>(false);
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
 
   // Replace with your actual SSE endpoint URL
   const sseUrl = 'http://localhost:8000/f1-stream/'; // Example URL, ensure this endpoint exists and works
 
-  const handleSessionInfo = useCallback((data: SessionInfo | null) => {
-    console.log('Received Session Info:', data);
-    setSession(data);
-  }, []);
-
-  const handleLapData = useCallback((data: Lap[] | null) => {
-    console.log('Received Lap Data:', data);
-    if (data === null) {
-      setLapData([]);
-    } else {
-      setLapData(prevData => [...(prevData || []), ...data]);
-    }
-  }, []);
-
-  const handleDriverData = useCallback((data: DriverData | null) => {
-    console.log('Received Driver Data:', data);
-    if (data === null) {
-      setDriverData({});
-    } else {
-      setDriverData(prevData => {
-        const newData = { ...(prevData || {}) };
-        for (const key in data) {
-          newData[key] = {
-            ...(prevData?.[key] || {}),
-            ...data[key],
-          };
-        }
-        return newData;
-      });
-    }
-  }, []);
-
-  const handleTimingData = useCallback((data: TimingData | null) => {
-    console.log('Received Timing Data:', data);
-    if (data === null) {
-      setTimingData(null);
-    } else {
-      setTimingData(prevData => {
-        const newTimingData = {
-          ...(prevData || {}),
-          ...data, // Spread top-level properties from new data
-          Lines: {
-            ...(prevData?.Lines || {}),
-          },
-        };
-
-        if (data.Lines) {
-          for (const key in data.Lines) {
-            newTimingData.Lines[key] = {
-              ...(prevData?.Lines?.[key] || {}),
-              ...data.Lines[key],
-            };
-          }
-        }
-        return newTimingData;
-      });
-    }
-  }, []);
-
-  const handleWeatherData = useCallback((data: WeatherData | null) => {
-    console.log('Received Weather data:', data);
-    setWeatherData(data);
-  }, []);
-
   const { error, isConnected } = useSSE({
     url: sseUrl,
-    onSessionInfo: handleSessionInfo,
-    onDriverData: handleDriverData,
-    onTimingData: handleTimingData,
-    onLapData: handleLapData,
-    onWeatherData: handleWeatherData,
   });
 
-  const loading = !session || !driverData || !timingData;
+  const loading = !sessionInfo || !driverData || !timingData;
 
   const mappedDrivers = useMemo(() => {
-    if (!session || !driverData || !timingData || !timingData.Lines) {
+    if (!sessionInfo || !driverData || !timingData || !timingData.Lines) {
       return [];
     }
 
@@ -223,7 +149,7 @@ export default function Home() {
     if (selectedDriver) {
       const driverToPit = currentDrivers.find(d => d.name === selectedDriver);
       if (driverToPit) {
-        const circuitName = session.Meeting.Circuit.ShortName || '';
+        const circuitName = sessionInfo.Meeting.Circuit.ShortName || '';
         const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
         const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
 
@@ -242,7 +168,7 @@ export default function Home() {
 
     logger.log("Final computed drivers in useMemo", currentDrivers);
     return currentDrivers;
-  }, [session, timingData, driverData, selectedDriver, selectedPenalty]);
+  }, [sessionInfo, timingData, driverData, selectedDriver, selectedPenalty]);
 
 
   function handleDriverChange(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -269,9 +195,9 @@ export default function Home() {
     <>
       <div className="w-full lg:h-[100vh] font-sans">
         <div className="h-[4vh]">
-          {session && (
+          {sessionInfo && (
             <Nav
-              session={session}
+              session={sessionInfo}
               raceFinished={raceFinished}
               lapsData={lapData}
               weatherData={weatherData}
@@ -290,7 +216,7 @@ export default function Home() {
             {mappedDrivers.length > 0 && (
               <DriverRankings
                 drivers={mappedDrivers}
-                session={session}
+                session={sessionInfo}
                 raceFinished={raceFinished}
                 lapsData={lapData}
               />
