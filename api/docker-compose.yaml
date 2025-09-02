@@ -1,7 +1,20 @@
 services:
-    redis:
-        image: redis/redis-stack
-        ports:
-          - "16379:6379"
-        volumes:
-          - C:/Users/david/projects/formula-strats/api/data:/data
+  redis:
+      image: redis/redis-stack
+      ports:
+        - "16379:6379"
+      volumes:
+        - ./data:/data:Z
+        - ./redis.conf:/redis-stack.conf:Z
+      # command: ["redis-server", "/redis-stack.conf"]
+      # command: ["redis-server", "--save", ""]
+  api:
+    build:
+      context: .
+      dockerfile: formulastrats/app/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
