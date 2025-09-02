@@ -1,10 +1,11 @@
 # f1_backend/app/main.py
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import redis.asyncio as redis
+from redis import asyncio as aioredis, exceptions
 
 from fastapi.responses import StreamingResponse
 from fastapi import Request, Depends
@@ -18,7 +19,8 @@ async def lifespan(app: FastAPI):
     # ===== Startup Logic =====
     print("Application startup: Initializing resources...")
 
-    redis_client = redis.from_url('redis://localhost:16379')
+    redis_url = os.getenv("REDIS_URL", "redis://redis:16379")
+    redis_client = aioredis.from_url(redis_url)
     app.state.redis = redis_client
 
     print("Application startup complete.")
@@ -50,7 +52,7 @@ async def stream_f1_data(
             redis_client = request.app.state.redis
 
             # Define keys for initial data
-            initial_data_keys = ["DriverList", "SessionInfo", "TimingData"]
+            initial_data_keys = ["DriverList", "SessionInfo", "TimingData", "WeatherData"]
             for key in initial_data_keys:
                 try:
                     message_data_bytes = await redis_client.get(key)
@@ -108,7 +110,7 @@ async def stream_f1_data(
 
         except asyncio.CancelledError:
             print("SSE stream cancelled on server side (Redis).")
-        except redis.exceptions.ConnectionError as e:
+        except exceptions.ConnectionError as e:
             print(f"SSE stream: Redis connection error: {e}")
             # Optionally, yield an error event to the client
             yield f"event: error\ndata: Redis connection error: {str(e)}\n\n"
