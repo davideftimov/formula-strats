@@ -73,8 +73,7 @@ export default function Home() {
   const { delay } = useSettings(); // Use global delay from settings context
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
-  // Replace with your actual SSE endpoint URL
-  const sseUrl = 'http://localhost:8000/f1-stream/'; // Example URL, ensure this endpoint exists and works
+  const sseUrl = import.meta.env.VITE_SSE_URL;
 
   const { error, isConnected } = useSSE({
     url: sseUrl,
