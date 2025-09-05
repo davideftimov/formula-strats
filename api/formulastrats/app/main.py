@@ -73,8 +73,11 @@ async def stream_f1_data(
             if laps:
                 laps = [el.decode('utf-8') for el in laps]
                 laps = [json.loads(lap) for lap in laps]
-                laps_json = json.dumps({"type": "LapData", "payload": laps})
-                yield f"data: {laps_json}\n\n"
+                chunk_size = 50  # Send 50 laps at a time
+                for i in range(0, len(laps), chunk_size):
+                    laps_chunk = laps[i:i + chunk_size]
+                    laps_json = json.dumps({"type": "LapData", "payload": laps_chunk})
+                    yield f"data: {laps_json}\n\n"
             # Connect to Redis
             # Ensure decode_responses=False if your publisher sends bytes and you want to decode manually
             # redis_client = redis.Redis.from_url("redis://localhost:6379", decode_responses=False)
