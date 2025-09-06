@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -10,7 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { Settings, SettingsProvider } from "~/components/settings";
+import { SettingsProvider, useSettings } from "~/components/settings";
 
 
 export const links: Route.LinksFunction = () => [
@@ -26,31 +25,8 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
-    setTheme(initialTheme);
-  }, []);
-
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
-  };
+function InnerLayout({ children }: { children: React.ReactNode }) {
+  const { theme } = useSettings();
 
   return (
     <html lang="en" className={theme}>
@@ -61,16 +37,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body className="bg-white dark:bg-gray-900 text-black dark:text-white transition-colors duration-200">
-        <div className="absolute top-2 right-4 z-50">
-          <SettingsProvider>
-            <Settings theme={theme} toggleTheme={toggleTheme} />
-          </SettingsProvider>
-        </div>
         {children}
         <ScrollRestoration />
         <Scripts />
       </body>
     </html>
+  );
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <SettingsProvider>
+      <InnerLayout>{children}</InnerLayout>
+    </SettingsProvider>
   );
 }
 
