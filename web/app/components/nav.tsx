@@ -1,6 +1,7 @@
-import React, { useState, type ChangeEvent } from 'react';
-import type { Meeting, SessionInfo, Lap, WeatherData } from '~/types';
+import React, { type ChangeEvent } from 'react';
+import type { SessionInfo, Lap, WeatherData } from '~/types';
 import type { DriverInterval } from '~/types/driver-interval';
+import { Settings } from './settings';
 
 interface NavProps {
     session: SessionInfo | null;
@@ -33,6 +34,7 @@ export const Nav: React.FC<NavProps> = ({ session, raceFinished, lapsData, weath
                 </p>
             </div>
             <div className="lg:w-4/5 ml-2 flex items-center justify-around">
+                <div className="flex-grow" />
                 {weatherData && (
                     <div className="flex text-sm mr-10">
                         <p className="mr-2">
@@ -69,7 +71,7 @@ export const Nav: React.FC<NavProps> = ({ session, raceFinished, lapsData, weath
                         className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-1 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
                         value={selectedPenalty}
                         onChange={handlePenaltyChange}
-                        disabled={!selectedDriver}
+                    // disabled={!selectedDriver}
                     >
                         <option value={0}>No Penalty</option>
                         <option value={5}>+5s</option>
@@ -78,6 +80,10 @@ export const Nav: React.FC<NavProps> = ({ session, raceFinished, lapsData, weath
                         <option value={20}>+20s</option>
                         <option value={25}>+25s</option>
                     </select>
+                </div>
+                <div className="flex-grow" />
+                <div className="ml-4">
+                    <Settings />
                 </div>
             </div>
         </div>

@@ -3,17 +3,22 @@ import React, { useState, useEffect, createContext, useContext } from "react";
 interface SettingsContextType {
 	delay: number;
 	setDelay: (delay: number) => void;
+	theme: "light" | "dark";
+	toggleTheme: () => void;
 }
 
 export const SettingsContext = createContext<SettingsContextType>({
 	delay: 0,
 	setDelay: () => { },
+	theme: "light",
+	toggleTheme: () => { },
 });
 
 export const useSettings = () => useContext(SettingsContext);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [delay, setDelay] = useState<number>(0);
+	const [theme, setTheme] = useState<"light" | "dark">("light");
 
 	// Load delay from localStorage on mount
 	useEffect(() => {
@@ -21,6 +26,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 		if (savedDelay) {
 			setDelay(Number(savedDelay));
 		}
+
+		const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+		const prefersDark = window.matchMedia(
+			"(prefers-color-scheme: dark)"
+		).matches;
+		const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+		setTheme(initialTheme);
 	}, []);
 
 	// Save delay to localStorage when it changes
@@ -28,21 +40,30 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 		localStorage.setItem("delay", delay.toString());
 	}, [delay]);
 
+	useEffect(() => {
+		if (theme === "dark") {
+			document.documentElement.classList.add("dark");
+			localStorage.setItem("theme", "dark");
+		} else {
+			document.documentElement.classList.remove("dark");
+			localStorage.setItem("theme", "light");
+		}
+	}, [theme]);
+
+	const toggleTheme = () => {
+		setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+	};
+
 	return (
-		<SettingsContext.Provider value={{ delay, setDelay }}>
+		<SettingsContext.Provider value={{ delay, setDelay, theme, toggleTheme }}>
 			{children}
 		</SettingsContext.Provider>
 	);
 };
 
-interface SettingsProps {
-	theme: "light" | "dark";
-	toggleTheme: () => void;
-}
-
-export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
+export const Settings: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { delay, setDelay } = useSettings();
+	const { delay, setDelay, theme, toggleTheme } = useSettings();
 	// Local state for the input field's value
 	const [inputValue, setInputValue] = useState<string>(delay.toString());
 
@@ -70,7 +91,7 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
 		<div className="relative">
 			<button
 				onClick={() => setIsOpen(!isOpen)}
-				className="settings-button p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-offset-2 transition-colors duration-200"
+				className="settings-button text-gray-800 dark:text-gray-200 hover:text-orange-500 transition-colors duration-200 cursor-pointer p-1"
 				aria-label="Settings"
 			>
 				<svg
@@ -88,7 +109,7 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
 			</button>
 
 			{isOpen && (
-				<div className="settings-container absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg p-4 z-50 border border-gray-200 dark:border-gray-700">
+				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg p-4 z-50 border border-gray-200 dark:border-gray-700">
 					<h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Settings</h3>
 
 					<div className="mb-3">
