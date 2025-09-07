@@ -125,7 +125,16 @@ export default function Home() {
           }
         }
       } else {
-        gapDisplay = "Unknown";
+        // TO DO: Retreive current lap from better source
+        if (lapData.length > 0 && (driverTimingInfo.Retired || driverTimingInfo.Stopped)) {
+          if (driverTimingInfo.NumberOfLaps) {
+            gapDisplay = `${lapData[lapData.length - 1].LapNumber - driverTimingInfo.NumberOfLaps}L`
+          } else {
+            gapDisplay = `${lapData[lapData.length - 1].LapNumber}L`
+          }
+        } else {
+          gapDisplay = "-";
+        }
         gapInSeconds = -1;
         logger.warn(`GapToLeader is missing for driver ${racingNumber} (Position: ${driverTimingInfo.Position})`);
       }
