@@ -114,13 +114,13 @@ export default function Home() {
         gapDisplay = driverTimingInfo.GapToLeader;
         if (driverTimingInfo.GapToLeader.includes('L')) {
           // isLapped = true; // Value assigned but not used
-          gapInSeconds = -1;
+          gapInSeconds = Infinity;
         } else {
           try {
             gapInSeconds = parseTimeToSeconds(driverTimingInfo.GapToLeader);
           } catch (e) {
             logger.warn(`Could not parse GapToLeader for driver ${racingNumber}: ${driverTimingInfo.GapToLeader}`, e);
-            gapInSeconds = -1;
+            gapInSeconds = Infinity;
           }
         }
       } else {
@@ -133,7 +133,7 @@ export default function Home() {
         } else {
           gapDisplay = "-";
         }
-        gapInSeconds = -1;
+        gapInSeconds = Infinity;
         logger.warn(`GapToLeader is missing for driver ${racingNumber} (Position: ${driverTimingInfo.Position})`);
       }
 
