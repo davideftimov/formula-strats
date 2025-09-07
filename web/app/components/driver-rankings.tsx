@@ -4,12 +4,9 @@ import type { DriverInterval } from '~/types/driver-interval';
 
 interface DriverRankingsProps {
 	drivers: DriverInterval[];
-	session: SessionInfo | null;
-	raceFinished: boolean;
-	lapsData: Lap[];
 }
 
-export const DriverRankings: React.FC<DriverRankingsProps> = ({ drivers, session, raceFinished, lapsData }) => {
+export const DriverRankings: React.FC<DriverRankingsProps> = ({ drivers }) => {
 	if (!drivers || drivers.length === 0) {
 		return <div className="p-2 text-gray-500 dark:text-gray-400">No driver data available.</div>;
 	}

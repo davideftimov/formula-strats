@@ -1,12 +1,11 @@
 import React, { type ChangeEvent } from 'react';
-import type { SessionInfo, Lap, WeatherData } from '~/types';
+import type { SessionInfo, LapCount, Lap, WeatherData } from '~/types';
 import type { DriverInterval } from '~/types/driver-interval';
 import { Settings } from './settings';
 
 interface NavProps {
     session: SessionInfo | null;
-    raceFinished: boolean;
-    lapsData: Lap[];
+    lapCount: LapCount | null;
     weatherData: WeatherData | null;
     selectedPenalty: number;
     handlePenaltyChange: (event: ChangeEvent<HTMLSelectElement>) => void;
@@ -15,7 +14,7 @@ interface NavProps {
     drivers: DriverInterval[];
 }
 
-export const Nav: React.FC<NavProps> = ({ session, raceFinished, lapsData, weatherData, selectedPenalty, handlePenaltyChange, selectedDriver, handleDriverChange, drivers }) => {
+export const Nav: React.FC<NavProps> = ({ session, lapCount, weatherData, selectedPenalty, handlePenaltyChange, selectedDriver, handleDriverChange, drivers }) => {
     if (!session) {
         return <div className="p-2 text-gray-500 dark:text-gray-400">No session data available.</div>;
     }
@@ -27,7 +26,7 @@ export const Nav: React.FC<NavProps> = ({ session, raceFinished, lapsData, weath
                     {session?.Meeting.Location} - {session?.Name}
                 </p>
                 <p className='text- font-bold'>
-                    {raceFinished ? "FINISHED" : lapsData.length > 0 ? `Lap ${lapsData[lapsData.length - 1].LapNumber}` : ""}
+                    {lapCount ? `Lap ${lapCount.CurrentLap} / ${lapCount.TotalLaps}` : ""}
                 </p>
                 <p className='text- font-bold'>
                     Green

@@ -66,10 +66,9 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const { sessionInfo, driverData, timingData, lapData, weatherData } = useStore(f1Store);
+  const { sessionInfo, driverData, lapCount, timingData, lapData, weatherData } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
-  const [raceFinished, setRaceFinished] = useState<boolean>(false);
   const { delay } = useSettings(); // Use global delay from settings context
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
@@ -125,12 +124,11 @@ export default function Home() {
           }
         }
       } else {
-        // TO DO: Retreive current lap from better source
-        if (lapData.length > 0 && (driverTimingInfo.Retired || driverTimingInfo.Stopped)) {
+        if (lapCount && (driverTimingInfo.Retired || driverTimingInfo.Stopped)) {
           if (driverTimingInfo.NumberOfLaps) {
-            gapDisplay = `${lapData[lapData.length - 1].LapNumber - driverTimingInfo.NumberOfLaps}L`
+            gapDisplay = `${lapCount.CurrentLap - driverTimingInfo.NumberOfLaps}L`
           } else {
-            gapDisplay = `${lapData[lapData.length - 1].LapNumber}L`
+            gapDisplay = `${lapCount.CurrentLap}L`
           }
         } else {
           gapDisplay = "-";
@@ -207,8 +205,7 @@ export default function Home() {
           {sessionInfo && (
             <Nav
               session={sessionInfo}
-              raceFinished={raceFinished}
-              lapsData={lapData}
+              lapCount={lapCount}
               weatherData={weatherData}
               selectedPenalty={selectedPenalty}
               handlePenaltyChange={handlePenaltyChange}
@@ -225,9 +222,6 @@ export default function Home() {
             {mappedDrivers.length > 0 && (
               <DriverRankings
                 drivers={mappedDrivers}
-                session={sessionInfo}
-                raceFinished={raceFinished}
-                lapsData={lapData}
               />
             )}
           </div>

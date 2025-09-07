@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData } from '~/types/index';
+import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData, LapCount } from '~/types/index';
 import { f1Store } from '~/store/f1-store';
 import { merge } from 'lodash';
 
@@ -19,14 +19,15 @@ const useSSE = ({ url }: UseSSEProps) => {
 
 		const eventSource = new EventSource(url);
 		// Clear previous data by resetting the store
-        f1Store.setState(state => ({
-            ...state,
-            sessionInfo: null,
-            driverData: {},
-            timingData: null,
-            lapData: [],
-            weatherData: null,
-        }));
+		f1Store.setState(state => ({
+			...state,
+			sessionInfo: null,
+			driverData: {},
+			lapCount: null,
+			timingData: null,
+			lapData: [],
+			weatherData: null,
+		}));
 		setError(null);
 		setIsConnected(false); // Initially not connected
 
@@ -43,23 +44,27 @@ const useSSE = ({ url }: UseSSEProps) => {
 
 				// Use type guards to determine the type of data and call the appropriate callback
 				if (parsedMessage.type === 'DriverList') {
-                    f1Store.setState(state => ({ ...state, driverData: merge({}, state.driverData, messagePayload as DriverData) }));
+					f1Store.setState(state => ({ ...state, driverData: merge({}, state.driverData, messagePayload as DriverData) }));
 					console.log('SSE LEVEL DRIVER DATA PARSED:', parsedMessage);
 					console.log('SSE LEVEL DRIVER DATA:', messagePayload);
 				} else if (parsedMessage.type === 'TimingData') {
-                    f1Store.setState(state => ({ ...state, timingData: merge({}, state.timingData, messagePayload as TimingData) }));
+					f1Store.setState(state => ({ ...state, timingData: merge({}, state.timingData, messagePayload as TimingData) }));
 					console.log('SSE LEVEL TIMING DATA PARSED:', parsedMessage);
 					console.log('SSE LEVEL TIMING DATA:', messagePayload);
+				} else if (parsedMessage.type === 'LapCount') {
+					f1Store.setState(state => ({ ...state, lapCount: merge({}, state.timingData, messagePayload as LapCount) }));
+					console.log('SSE LEVEL LAP COUNT PARSED:', parsedMessage);
+					console.log('SSE LEVEL LAP COUNT:', messagePayload);
 				} else if (parsedMessage.type === 'SessionInfo') {
-                    f1Store.setState(state => ({ ...state, sessionInfo: messagePayload as SessionInfo }));
+					f1Store.setState(state => ({ ...state, sessionInfo: messagePayload as SessionInfo }));
 					console.log('SSE LEVEL SESSION INFO PARSED:', parsedMessage);
 					console.log('SSE LEVEL SESSION INFO:', messagePayload);
 				} else if (parsedMessage.type === 'LapData') {
-                    f1Store.setState(state => ({ ...state, lapData: [...state.lapData, ...(messagePayload as Lap[])] }));
+					f1Store.setState(state => ({ ...state, lapData: [...state.lapData, ...(messagePayload as Lap[])] }));
 					console.log('SSE LEVEL LAP DATA PARSED:', parsedMessage);
 					console.log('SSE LEVEL LAP DATA:', messagePayload);
 				} else if (parsedMessage.type === 'WeatherData') {
-                    f1Store.setState(state => ({ ...state, weatherData: messagePayload as WeatherData }));
+					f1Store.setState(state => ({ ...state, weatherData: messagePayload as WeatherData }));
 					console.log('SSE LEVEL WEATHER DATA PARSED:', parsedMessage);
 					console.log('SSE LEVEL WEATHER DATA:', messagePayload);
 				} else {
