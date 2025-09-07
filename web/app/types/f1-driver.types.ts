@@ -88,7 +88,7 @@ export type PersonalBestLapTime = {
 
 export interface F1Message {
 	type: string; // e.g., "DriverTracker", "LapData"
-	payload: DriverData | TimingData | SessionInfo | Lap[] | WeatherData; // The data can be of type DriverData, TimingData, or a string (e.g., "LAP 57")
+	payload: DriverData | TimingData | SessionInfo | LapCount | Lap[] | WeatherData; // The data can be of type DriverData, TimingData, or a string (e.g., "LAP 57")
 }
 
 export interface Lap {
@@ -172,4 +172,9 @@ export interface F1Data {
 	DriverData: DriverData;
 	TimingData: TimingData;
 	LapData: Lap[];
+}
+
+export interface LapCount {
+	CurrentLap: number;
+	TotalLaps: number;
 }
