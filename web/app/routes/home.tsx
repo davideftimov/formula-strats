@@ -151,13 +151,14 @@ export default function Home() {
         const circuitName = sessionInfo.Meeting.Circuit.ShortName || '';
         const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
         const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
+        const gapInSecondsAfterPit = driverToPit.gapInSeconds + pitTimeLost;
 
         const simulatedDriver = {
           ...driverToPit,
           name: `${driverToPit.name} (Pit)`,
           color: driverToPit.color + '80',
-          gapInSeconds: driverToPit.gapInSeconds + pitTimeLost,
-          gapDisplay: `+${pitTimeLost.toFixed(1)}s`,
+          gapInSeconds: gapInSecondsAfterPit,
+          gapDisplay: `+${gapInSecondsAfterPit.toFixed(1)}s`,
           isSpecialStatus: true,
         };
         currentDrivers.push(simulatedDriver);
