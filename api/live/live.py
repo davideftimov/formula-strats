@@ -1,16 +1,44 @@
-import asyncio
-import json
 import os
-import websockets
 from dotenv import load_dotenv
-import re
+import requests
+import websockets
+import json
+import asyncio
 import redis.asyncio as redis
+import re  # Add this import at the top of the file
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
+F1_SIMULATOR_WEBSOCKET_URL = os.getenv("F1_SIMULATOR_WEBSOCKET_URL")
 
-F1_WEBSOCKET_URL_TO_USE = os.getenv("F1_SIMULATOR_WEBSOCKET_URL")
-# F1_WEBSOCKET_URL_TO_USE = os.getenv("F1_WEBSOCKET_URL") # For real F1 feed
+def negotiate():
+    hub = requests.utils.quote(json.dumps([{"name": "Streaming"}]))
+    url = f"https://livetiming.formula1.com/signalr/negotiate?connectionData={hub}&clientProtocol=1.5"
+    resp = requests.get(url)
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        return resp
+    except requests.exceptions.RequestException as e:
+        print(f"Error during negotiation: {e}")
+        raise
+
+async def connect_wss(token, cookie):
+    hub = requests.utils.quote(json.dumps([{"name": "Streaming"}]))
+    encoded_token = requests.utils.quote(token)
+    url = f"wss://livetiming.formula1.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken={encoded_token}&connectionData={hub}"
+    
+    additional_headers = {
+        'Accept-Encoding': 'gzip,identity',
+        'Cookie': cookie
+    }
+    
+    websocket = await websockets.connect(
+        url, 
+        additional_headers=additional_headers,
+        user_agent_header='BestHTTP'
+    )
+    return websocket
 
 def fix_json(elem):
     # fix F1's not json compliant data
@@ -118,7 +146,7 @@ async def on_message(message, redis):
         message = fix_json(message)
         data = json.loads(message)
         if 'R' in data:
-            initial_data_keys = ["DriverList", "SessionInfo", "TimingData"]
+            initial_data_keys = ["DriverList", "SessionInfo", "TimingData", "WeatherData"]
             for key in initial_data_keys:
                 if key in data['R']:
                     print(f"F1_CLIENT_SQLMODEL: Initial data for {key}: {data['R'][key]}")
@@ -159,26 +187,19 @@ async def on_message(message, redis):
         print(f"Error parsing message with json.loads: {e_parse} - Original: {message}")
     except Exception as e:
         print(f"Error processing message: {e}")
-	
 
-async def f1_data_listener(redis):
-    if not F1_WEBSOCKET_URL_TO_USE:
-        print("F1_CLIENT_SQLMODEL: F1_WEBSOCKET_URL_TO_USE not set. Skipping connection.")
-        return
+message_queue = asyncio.Queue()
 
-    print(f"F1_CLIENT_SQLMODEL: Attempting to connect to F1 Data Source: {F1_WEBSOCKET_URL_TO_USE}")
-    try:
-        async with websockets.connect(F1_WEBSOCKET_URL_TO_USE) as websocket:
-            print(f"F1_CLIENT_SQLMODEL: Successfully connected to: {F1_WEBSOCKET_URL_TO_USE}")
-            async for message in websocket:
-                await on_message(message, redis)
+async def receiver(websocket):
+    while True:
+        data = await websocket.recv()
+        await message_queue.put(data)
 
-    except (websockets.exceptions.ConnectionClosed, ConnectionRefusedError, OSError) as e:
-        print(f"Connection error: {e}. Retrying in 5 seconds...")
-        await asyncio.sleep(5)
-    except Exception as e:
-        print(f"Unexpected error in listener: {e}. Retrying in 5 seconds...")
-        await asyncio.sleep(5)
+async def processor(redis):
+    while True:
+        msg = await message_queue.get()
+        await on_message(msg, redis)
+        message_queue.task_done()
 
 async def main():
     redis_client = redis.from_url('redis://localhost:16379')
@@ -186,7 +207,56 @@ async def main():
     await redis_client.delete('SessionInfo')
     await redis_client.delete('TimingData')
     await redis_client.delete('LapData')
-    await f1_data_listener(redis_client)
+    await redis_client.delete('WeatherData')
+    simulation = False
+    try:
+        if simulation:
+            websocket = await websockets.connect(F1_SIMULATOR_WEBSOCKET_URL) 
+        else:
+            negotiate_resp = negotiate()
+
+            negotiate_data = negotiate_resp.json()
+            
+            # print(negotiate_data)
+            # print(negotiate_resp.headers)
+
+            connection_token = negotiate_data.get('ConnectionToken')
+            if not connection_token:
+                raise ValueError("ConnectionToken not found in negotiation response")
+            
+            cookie_header_value = negotiate_resp.headers.get('Set-Cookie')
+            if not cookie_header_value:
+                raise ValueError("Set-Cookie header not found in negotiation response")
+            
+            websocket = await connect_wss(connection_token, cookie_header_value)
+            
+            await websocket.send(json.dumps({
+                "H": "Streaming",
+                "M": "Subscribe",
+                "A": [["TimingData", "SessionInfo", "DriverList", "WeatherData"]],
+                "I": 1
+            }))
+        
+        # Listen for messages
+        # while True:
+        #     data = await websocket.recv()
+        #     # print(f"received {data}")
+        #     # Process the received message
+        #     await on_message(data, redis_client)
+        asyncio.create_task(receiver(websocket))
+        asyncio.create_task(processor(redis_client))
+
+        # Keep main alive
+        await asyncio.Event().wait()
+
+    except websockets.exceptions.ConnectionClosed as e:
+        print(f"WebSocket connection closed: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {e}")
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+    except Exception as e:
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
