@@ -146,7 +146,7 @@ async def on_message(message, redis):
         message = fix_json(message)
         data = json.loads(message)
         if 'R' in data:
-            initial_data_keys = ["DriverList", "SessionInfo", "LapCount", "TimingData", "WeatherData"]
+            initial_data_keys = ["DriverList", "SessionInfo", "LapCount", "TrackStatus", "TimingData", "WeatherData"]
             for key in initial_data_keys:
                 if key in data['R']:
                     print(f"F1_CLIENT_SQLMODEL: Initial data for {key}: {data['R'][key]}")
@@ -206,6 +206,7 @@ async def main():
     await redis_client.delete('DriverList')
     await redis_client.delete('SessionInfo')
     await redis_client.delete('LapCount')
+    await redis_client.delete('TrackStatus')
     await redis_client.delete('TimingData')
     await redis_client.delete('LapData')
     await redis_client.delete('WeatherData')
@@ -234,7 +235,7 @@ async def main():
             await websocket.send(json.dumps({
                 "H": "Streaming",
                 "M": "Subscribe",
-                "A": [["TimingData", "SessionInfo", "LapCount", "DriverList", "WeatherData"]],
+                "A": [["TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData"]],
                 "I": 1
             }))
         
