@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData, LapCount } from '~/types/index';
+import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData, LapCount, TrackStatus } from '~/types/index';
 import { f1Store } from '~/store/f1-store';
 import { merge } from 'lodash';
 
@@ -24,6 +24,7 @@ const useSSE = ({ url }: UseSSEProps) => {
 			sessionInfo: null,
 			driverData: {},
 			lapCount: null,
+			trackStatus: null,
 			timingData: null,
 			lapData: [],
 			weatherData: null,
@@ -55,6 +56,10 @@ const useSSE = ({ url }: UseSSEProps) => {
 					f1Store.setState(state => ({ ...state, lapCount: merge({}, state.timingData, messagePayload as LapCount) }));
 					console.log('SSE LEVEL LAP COUNT PARSED:', parsedMessage);
 					console.log('SSE LEVEL LAP COUNT:', messagePayload);
+				} else if (parsedMessage.type === 'TrackStatus') {
+					f1Store.setState(state => ({ ...state, trackStatus: merge({}, state.timingData, messagePayload as TrackStatus) }));
+					console.log('SSE LEVEL TRACK STATUS PARSED:', parsedMessage);
+					console.log('SSE LEVEL TRACK STATUS:', messagePayload);
 				} else if (parsedMessage.type === 'SessionInfo') {
 					f1Store.setState(state => ({ ...state, sessionInfo: messagePayload as SessionInfo }));
 					console.log('SSE LEVEL SESSION INFO PARSED:', parsedMessage);

@@ -66,7 +66,7 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const { sessionInfo, driverData, lapCount, timingData, lapData, weatherData } = useStore(f1Store);
+  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
   const { delay } = useSettings(); // Use global delay from settings context
@@ -157,7 +157,12 @@ export default function Home() {
       if (driverToPit) {
         const circuitName = sessionInfo.Meeting.Circuit.ShortName || '';
         const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
-        const pitTimeLost = (pitTimeLostData ? pitTimeLostData.green_flag : 20) + selectedPenalty;
+        const pitTimeLost = (pitTimeLostData
+          ? (trackStatus?.Status === "6" || trackStatus?.Status === "4"
+            ? pitTimeLostData.sc_vsc
+            : pitTimeLostData.green_flag)
+          : 20
+        ) + selectedPenalty;
         const gapInSecondsAfterPit = driverToPit.gapInSeconds + pitTimeLost;
 
         const simulatedDriver = {
@@ -207,6 +212,7 @@ export default function Home() {
               session={sessionInfo}
               lapCount={lapCount}
               weatherData={weatherData}
+              trackStatus={trackStatus}
               selectedPenalty={selectedPenalty}
               handlePenaltyChange={handlePenaltyChange}
               selectedDriver={selectedDriver}
