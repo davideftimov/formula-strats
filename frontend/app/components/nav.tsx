@@ -1,6 +1,5 @@
 import React, { type ChangeEvent } from 'react';
-import type { SessionInfo, LapCount, TrackStatus, WeatherData } from '~/types';
-import type { DriverInterval } from '~/types/driver-interval';
+import type { SessionInfo, LapCount, TrackStatus, WeatherData, DriverInterval } from '~/types';
 import { Settings } from './settings';
 
 interface NavProps {
@@ -75,7 +74,6 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                         className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-1 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
                         value={selectedPenalty}
                         onChange={handlePenaltyChange}
-                    // disabled={!selectedDriver}
                     >
                         <option value={0}>No Penalty</option>
                         <option value={5}>+5s</option>

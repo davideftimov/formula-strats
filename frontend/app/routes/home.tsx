@@ -1,10 +1,10 @@
 import type { Route } from "./+types/home";
-import { DriverTimeline } from "~/components/driver-timeline";
+import { Timeline } from "~/components/timeline";
 import { Footer } from "~/components/footer";
 import React, { useState, useMemo } from 'react';
 import { LapChart } from '~/components/lap-chart';
-import { DriverRankings } from '~/components/driver-rankings';
-import type { DriverInterval } from '~/types/driver-interval';
+import { Rankings } from '~/components/rankings';
+import type { DriverInterval } from '~/types';
 import { useSettings } from '~/components/settings';
 import { logger } from '../utils/logger';
 import useSSE from '~/hooks/useSSE';
@@ -68,8 +68,8 @@ function parseTimeToSeconds(timeStr: string): number {
 export default function Home() {
   const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
-  const [selectedPenalty, setSelectedPenalty] = useState<number>(0); // Add state for penalty
-  const { delay } = useSettings(); // Use global delay from settings context
+  const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
+  const { delay } = useSettings();
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
   const sseUrl = import.meta.env.VITE_SSE_URL;
@@ -113,7 +113,6 @@ export default function Home() {
       } else if (driverTimingInfo.GapToLeader) {
         gapDisplay = driverTimingInfo.GapToLeader;
         if (driverTimingInfo.GapToLeader.includes('L')) {
-          // isLapped = true; // Value assigned but not used
           gapInSeconds = Infinity;
         } else {
           try {
@@ -226,7 +225,7 @@ export default function Home() {
           {/* Left column - Driver Rankings */}
           <div className="lg:w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
             {mappedDrivers.length > 0 && (
-              <DriverRankings
+              <Rankings
                 drivers={mappedDrivers}
               />
             )}
@@ -237,7 +236,7 @@ export default function Home() {
             {/* Driver timeline */}
             {mappedDrivers.length > 0 && (
               <div className='px-6 h-[25vh] pt-2'>
-                <DriverTimeline drivers={mappedDrivers} />
+                <Timeline drivers={mappedDrivers} />
               </div>
             )}
 

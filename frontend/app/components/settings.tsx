@@ -20,7 +20,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 	const [delay, setDelay] = useState<number>(0);
 	const [theme, setTheme] = useState<"light" | "dark">("light");
 
-	// Load delay from localStorage on mount
 	useEffect(() => {
 		const savedDelay = localStorage.getItem("delay");
 		if (savedDelay) {
@@ -35,7 +34,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 		setTheme(initialTheme);
 	}, []);
 
-	// Save delay to localStorage when it changes
 	useEffect(() => {
 		localStorage.setItem("delay", delay.toString());
 	}, [delay]);
@@ -64,7 +62,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 export const Settings: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { delay, setDelay, theme, toggleTheme } = useSettings();
-	// Local state for the input field's value
 	const [inputValue, setInputValue] = useState<string>(delay.toString());
 
 	// Sync context delay to local input value when delay changes externally
@@ -160,7 +157,7 @@ export const Settings: React.FC = () => {
 								const value = e.target.value;
 								// Allow only empty string or non-negative integers
 								if (/^[0-9]*$/.test(value)) {
-									setInputValue(value); // Update local input state immediately
+									setInputValue(value);
 									const numValue = value === '' ? 0 : parseInt(value, 10);
 									// Update context state (debouncing could be added here if needed)
 									if (!isNaN(numValue) && numValue >= 0) {

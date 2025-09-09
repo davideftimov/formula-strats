@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import type { DriverDetails, Lap, DriverData } from '~/types';
+import type { Lap, DriverData } from '~/types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface LapChartProps {
@@ -27,21 +27,15 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
-	// State to toggle between normal view and showing all outliers
 	const [showOutliers, setShowOutliers] = useState(false);
-	// State for selected drivers (using driver racing numbers as strings)
 	const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
-	// State to control dropdown visibility
 	const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-	// Add ref for dropdown container to detect outside clicks
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
-	// Initialize selected drivers when drivers prop changes
 	useEffect(() => {
 		setSelectedDrivers(new Set(Object.keys(drivers)));
 	}, [drivers]);
 
-	// Close dropdown when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -49,18 +43,15 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 			}
 		};
 
-		// Add event listener when dropdown is open
 		if (isSelectorOpen) {
 			document.addEventListener('mousedown', handleClickOutside);
 		}
 
-		// Cleanup event listener
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
 	}, [isSelectorOpen]);
 
-	// Get all available driver numbers (as strings)
 	const allDriverNumbers = useMemo(() => Object.keys(drivers), [drivers]);
 
 	// Process lap data
