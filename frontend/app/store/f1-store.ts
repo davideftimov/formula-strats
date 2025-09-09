@@ -1,5 +1,5 @@
 import { Store } from '@tanstack/store'
-import type { SessionInfo, DriverData, LapCount, TrackStatus, TimingData, Lap, WeatherData } from '~/types/index';
+import type { SessionInfo, DriverData, LapCount, TrackStatus, TimingData, Lap, WeatherData } from '~/types';
 
 interface F1State {
     sessionInfo: SessionInfo | null;

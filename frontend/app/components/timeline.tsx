@@ -1,12 +1,12 @@
 import React from 'react';
-import type { DriverInterval } from '~/types/driver-interval';
+import type { DriverInterval } from '~/types';
 
-interface DriverTimelineProps {
+interface TimelineProps {
 	drivers: DriverInterval[];
 }
 
-export const DriverTimeline: React.FC<DriverTimelineProps> = ({ drivers }) => {
-	// Find the maximum gap to scale our visualization appropriately
+export const Timeline: React.FC<TimelineProps> = ({ drivers }) => {
+	// Find the maximum gap to scale the visualization appropriately
 	const maxGap = drivers.length > 0
 		? Math.max(
 			...drivers

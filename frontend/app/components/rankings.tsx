@@ -1,12 +1,11 @@
 import React from 'react';
-import type { Meeting, SessionInfo, Lap } from '~/types';
-import type { DriverInterval } from '~/types/driver-interval';
+import type { DriverInterval } from '~/types';
 
-interface DriverRankingsProps {
+interface RankingsProps {
 	drivers: DriverInterval[];
 }
 
-export const DriverRankings: React.FC<DriverRankingsProps> = ({ drivers }) => {
+export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 	if (!drivers || drivers.length === 0) {
 		return <div className="p-2 text-gray-500 dark:text-gray-400">No driver data available.</div>;
 	}
