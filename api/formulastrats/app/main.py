@@ -1,4 +1,3 @@
-# f1_backend/app/main.py
 import asyncio
 import os
 from contextlib import asynccontextmanager
@@ -41,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/f1-stream/", response_model=None) # SSE doesn't use response_model here
+@app.get("/f1-stream/", response_model=None)
 async def stream_f1_data(
     request: Request,
 ):
@@ -51,23 +50,18 @@ async def stream_f1_data(
         try:
             redis_client = request.app.state.redis
 
-            # Define keys for initial data
             initial_data_keys = ["DriverList", "SessionInfo", "LapCount", "TrackStatus", "TimingData", "WeatherData"]
             for key in initial_data_keys:
                 try:
                     message_data_bytes = await redis_client.get(key)
                     if message_data_bytes:
-                        # decoded_data = json.loads(hash_data)
                         message_data_str = message_data_bytes.decode('utf-8')
-
-                        # json_data = json.dumps({"type": key, "payload": decoded_data})
-                        # print(f"(SSE Stream) Sending initial data for {key}: {decoded_data}")
                         yield f"data: {message_data_str}\n\n"
                     else:
                         print(f"(SSE Stream) No initial data found for {key}")
                 except Exception as e:
                     print(f"Error retrieving initial data for {key} from Redis: {e}")
-                    # yield f"event: error\ndata: Error fetching initial {key}: {str(e)}\n\n"
+                    yield f"event: error\ndata: Error fetching initial {key}: {str(e)}\n\n"
             
             laps = await redis_client.lrange("LapData", 0, -1)
             if laps:
@@ -78,9 +72,7 @@ async def stream_f1_data(
                     laps_chunk = laps[i:i + chunk_size]
                     laps_json = json.dumps({"type": "LapData", "payload": laps_chunk})
                     yield f"data: {laps_json}\n\n"
-            # Connect to Redis
-            # Ensure decode_responses=False if your publisher sends bytes and you want to decode manually
-            # redis_client = redis.Redis.from_url("redis://localhost:6379", decode_responses=False)
+
             pubsub = redis_client.pubsub()
             await pubsub.subscribe(REDIS_CHANNEL_NAME)
             print(f"SSE stream subscribed to Redis channel: {REDIS_CHANNEL_NAME}")
@@ -90,36 +82,26 @@ async def stream_f1_data(
                     print("Client disconnected from SSE stream (Redis).")
                     break
 
-                # Listen for messages with a timeout to allow checking for client disconnect
-                # and to prevent blocking indefinitely if no messages are coming.
                 message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
                 
                 if message is not None and message.get("type") == "message":
                     message_data_bytes = message["data"]
-                    # Assuming message['data'] is bytes, similar to the original reader function
                     message_data_str = message_data_bytes.decode('utf-8')
-                    
-                    # print(f"(SSE Stream) Message Received: {message_data_str}") # For logging
 
                     if message_data_str == STOPWORD:
                         print("(SSE Stream) STOPWORD received, closing stream.")
-                        # Optionally, send a final message to the client indicating stop
                         # yield f"event: stop\ndata: Server stopping stream\n\n"
                         break
                     
-                    # Format as SSE
                     yield f"data: {message_data_str}\n\n"
-                # If message is None (due to timeout), the loop continues, checks disconnect, and tries again.
 
         except asyncio.CancelledError:
             print("SSE stream cancelled on server side (Redis).")
         except exceptions.ConnectionError as e:
             print(f"SSE stream: Redis connection error: {e}")
-            # Optionally, yield an error event to the client
             yield f"event: error\ndata: Redis connection error: {str(e)}\n\n"
         except Exception as e:
             print(f"Error in SSE event_generator (Redis): {e}")
-            # Optionally, yield an error event to the client
             yield f"event: error\ndata: Internal server error: {str(e)}\n\n"
         finally:
             # print("SSE Stream closing (Redis)...")
