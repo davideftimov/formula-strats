@@ -9,7 +9,7 @@ interface UseSSEProps {
 }
 
 const useSSE = ({ url }: UseSSEProps) => {
-	const [error, setError] = useState<Event | string | null>(null);
+	const [error, setError] = useState<string | null>(null);
 	const [isConnected, setIsConnected] = useState<boolean>(false);
 
 	useEffect(() => {

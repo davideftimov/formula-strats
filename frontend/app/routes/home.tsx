@@ -195,7 +195,7 @@ export default function Home() {
   }
 
   if (error) {
-    return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: </div>;
+    return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: {error}</div>;
   }
 
   if (isStarting) {
