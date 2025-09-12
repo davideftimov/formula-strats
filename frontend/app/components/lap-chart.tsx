@@ -1,29 +1,41 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import type { Lap } from '~/types/lap';
-import type { Driver } from '~/types/driver';
+import type { Lap, DriverData } from '~/types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface LapChartProps {
 	laps: Lap[];
-	drivers: Driver[];
+	drivers: DriverData;
+}
+
+function parseTimeToSeconds(timeStr: string): number {
+	// Remove leading '+' or '-' if present
+	const cleanStr = timeStr.trim().replace(/^[+-]/, '');
+
+	if (cleanStr.includes(':')) {
+		// Format is mm:ss.mmm or m:ss.mmm
+		const [minutes, rest] = cleanStr.split(':');
+		const [seconds, milliseconds = '0'] = rest.split('.');
+		return (
+			parseInt(minutes) * 60 +
+			parseInt(seconds) +
+			parseFloat('0.' + milliseconds)
+		);
+	} else {
+		// Format is just seconds.mmm
+		return parseFloat(cleanStr);
+	}
 }
 
 export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
-	// State to toggle between normal view and showing all outliers
 	const [showOutliers, setShowOutliers] = useState(false);
-	// State for selected drivers (using driver numbers)
-	const [selectedDrivers, setSelectedDrivers] = useState<Set<number>>(new Set());
-	// State to control dropdown visibility
+	const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
 	const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-	// Add ref for dropdown container to detect outside clicks
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
-	// Initialize selected drivers when drivers prop changes
 	useEffect(() => {
-		setSelectedDrivers(new Set(drivers.map(d => d.driver_number)));
+		setSelectedDrivers(new Set(Object.keys(drivers)));
 	}, [drivers]);
 
-	// Close dropdown when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -31,37 +43,34 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 			}
 		};
 
-		// Add event listener when dropdown is open
 		if (isSelectorOpen) {
 			document.addEventListener('mousedown', handleClickOutside);
 		}
 
-		// Cleanup event listener
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
 	}, [isSelectorOpen]);
 
-	// Get all available driver numbers
-	const allDriverNumbers = useMemo(() => drivers.map(d => d.driver_number), [drivers]);
+	const allDriverNumbers = useMemo(() => Object.keys(drivers), [drivers]);
 
 	// Process lap data
 	const processedData = useMemo(() => {
-		const lapsByDriver = new Map<number, Lap[]>();
+		const lapsByDriver = new Map<string, Lap[]>(); // Key is string (RacingNumber)
 
 		if (!laps.length) return lapsByDriver;
 
 		// Group laps by driver
 		laps.forEach(lap => {
-			if (!lapsByDriver.has(lap.driver_number)) {
-				lapsByDriver.set(lap.driver_number, []);
+			if (!lapsByDriver.has(lap.RacingNumber)) {
+				lapsByDriver.set(lap.RacingNumber, []);
 			}
-			lapsByDriver.get(lap.driver_number)?.push(lap);
+			lapsByDriver.get(lap.RacingNumber)?.push(lap);
 		});
 
 		// Sort laps for each driver by lap number
-		lapsByDriver.forEach((driverLaps, driverNumber) => {
-			driverLaps.sort((a, b) => a.lap_number - b.lap_number);
+		lapsByDriver.forEach((driverLaps) => { // driverNumber (key) is not needed here
+			driverLaps.sort((a, b) => a.LapNumber - b.LapNumber);
 		});
 
 		return lapsByDriver;
@@ -73,8 +82,8 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		let maxLap = 0;
 
 		laps.forEach(lap => {
-			minLap = Math.min(minLap, lap.lap_number);
-			maxLap = Math.max(maxLap, lap.lap_number);
+			minLap = Math.min(minLap, lap.LapNumber);
+			maxLap = Math.max(maxLap, lap.LapNumber);
 		});
 
 		return { minLap: minLap === Infinity ? 1 : minLap, maxLap };
@@ -88,10 +97,11 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 		// Collect all valid durations
 		laps.forEach(lap => {
-			if (lap.lap_duration !== null) {
-				durations.push(lap.lap_duration);
-				minDuration = Math.min(minDuration, lap.lap_duration);
-				maxDuration = Math.max(maxDuration, lap.lap_duration);
+			const lap_s = parseTimeToSeconds(lap.LapTime);
+			if (lap_s !== null) {
+				durations.push(lap_s);
+				minDuration = Math.min(minDuration, lap_s);
+				maxDuration = Math.max(maxDuration, lap_s);
 			}
 		});
 
@@ -143,11 +153,11 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 	}, [durationRanges.normalRange.maxDuration]);
 
 	// Find driver name and color
-	const getDriverInfo = (driverNumber: number) => {
-		const driver = drivers.find(d => d.driver_number === driverNumber);
+	const getDriverInfo = (driverRacingNumber: string) => { // Parameter is string
+		const driver = drivers[driverRacingNumber]; // Access DriverData by string key
 		return {
-			name: driver?.name_acronym || `D${driverNumber}`,
-			color: driver?.team_colour ? `#${driver.team_colour}` : '#cccccc'
+			name: driver?.Tla || `D${driverRacingNumber}`,
+			color: driver?.TeamColour ? `#${driver.TeamColour}` : '#cccccc'
 		};
 	};
 
@@ -161,44 +171,45 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		}
 
 		// Add lap times for selected drivers
-		processedData.forEach((driverLaps, driverNumber) => {
+		processedData.forEach((driverLaps, driverRacingNumber) => { // driverRacingNumber is string
 			// Only include selected drivers
-			if (!selectedDrivers.has(driverNumber)) {
+			if (!selectedDrivers.has(driverRacingNumber)) { // Check with string
 				return;
 			}
 
-			const { name } = getDriverInfo(driverNumber);
+			const { name } = getDriverInfo(driverRacingNumber);
 
 			driverLaps.forEach(lap => {
+				const lap_s = parseTimeToSeconds(lap.LapTime);
 				// Skip outliers if we're not showing them
-				if (!showOutliers && lap.lap_duration !== null && isOutlier(lap.lap_duration)) {
+				if (!showOutliers && lap_s !== null && isOutlier(lap_s)) {
 					return;
 				}
 
-				const dataIndex = lap.lap_number - lapRange.minLap;
+				const dataIndex = lap.LapNumber - lapRange.minLap;
 				if (dataIndex >= 0 && dataIndex < data.length) {
-					data[dataIndex][name] = lap.lap_duration;
+					data[dataIndex][name] = lap_s;
 				}
 			});
 		});
 
 		return data;
-	}, [processedData, lapRange.minLap, lapRange.maxLap, showOutliers, isOutlier, selectedDrivers]);
+	}, [processedData, lapRange.minLap, lapRange.maxLap, showOutliers, isOutlier, selectedDrivers, getDriverInfo]); // Added getDriverInfo to dependencies
 
 	// Generate lines for selected drivers
 	const driverLines = useMemo(() => {
 		const lines: React.ReactNode[] = [];
 
-		processedData.forEach((_, driverNumber) => {
+		processedData.forEach((_, driverRacingNumber) => { // driverRacingNumber is string
 			// Only include selected drivers
-			if (!selectedDrivers.has(driverNumber)) {
+			if (!selectedDrivers.has(driverRacingNumber)) { // Check with string
 				return;
 			}
-			const { name, color } = getDriverInfo(driverNumber);
+			const { name, color } = getDriverInfo(driverRacingNumber);
 
 			lines.push(
 				<Line
-					key={driverNumber}
+					key={driverRacingNumber} // Use string key
 					type="monotone"
 					dataKey={name}
 					stroke={color}
@@ -211,13 +222,13 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		});
 
 		return lines;
-	}, [processedData, selectedDrivers]);
+	}, [processedData, selectedDrivers, getDriverInfo]); // Added getDriverInfo to dependencies
 
 	// Handler for driver selection changes
-	const handleDriverSelect = (driverNumber: number | 'all') => {
+	const handleDriverSelect = (driverRacingNumber: string | 'all') => { // Parameter is string or 'all'
 		setSelectedDrivers(prevSelected => {
 			const newSelected = new Set(prevSelected);
-			if (driverNumber === 'all') {
+			if (driverRacingNumber === 'all') {
 				// If "All Drivers" is checked, uncheck all. Otherwise, check all.
 				if (newSelected.size === allDriverNumbers.length) {
 					newSelected.clear();
@@ -226,10 +237,10 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 				}
 			} else {
 				// Toggle individual driver selection
-				if (newSelected.has(driverNumber)) {
-					newSelected.delete(driverNumber);
+				if (newSelected.has(driverRacingNumber)) {
+					newSelected.delete(driverRacingNumber);
 				} else {
-					newSelected.add(driverNumber);
+					newSelected.add(driverRacingNumber);
 				}
 			}
 			return newSelected;
@@ -323,22 +334,25 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 									All / None
 								</div>
 								{/* Individual Driver Options */}
-								{drivers.sort((a, b) => a.driver_number - b.driver_number).map(driver => {
-									const { name, color } = getDriverInfo(driver.driver_number);
-									const isSelected = selectedDrivers.has(driver.driver_number);
-									return (
-										<div key={driver.driver_number} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => handleDriverSelect(driver.driver_number)}>
-											<input
-												type="checkbox"
-												checked={isSelected}
-												readOnly
-												className="mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
-											/>
-											<span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></span>
-											{driver.name_acronym || name}
-										</div>
-									);
-								})}
+								{Object.values(drivers) // Iterate over DriverDetails from DriverData
+									.sort((a, b) => Number(a.RacingNumber) - Number(b.RacingNumber)) // Sort by RacingNumber (as number)
+									.map(driverDetail => { // driverDetail is DriverDetails
+										const driverRacingNumberStr = driverDetail.RacingNumber; // string
+										const { name, color } = getDriverInfo(driverRacingNumberStr);
+										const isSelected = selectedDrivers.has(driverRacingNumberStr);
+										return (
+											<div key={driverRacingNumberStr} className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => handleDriverSelect(driverRacingNumberStr)}>
+												<input
+													type="checkbox"
+													checked={isSelected}
+													readOnly
+													className="mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
+												/>
+												<span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></span>
+												{driverDetail.Tla || name} {/* Use TLA from driverDetail or fallback name */}
+											</div>
+										);
+									})}
 							</div>
 						</div>
 					)}

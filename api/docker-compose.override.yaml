@@ -1,0 +1,41 @@
+services:
+  api:
+    # hot-reloading for development
+    command: ["uvicorn", "formulastrats.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    
+    # podman-compose hot-reloading
+    volumes:
+      - ./formulastrats:/app/formulastrats:Z
+      
+    # docker-compose hot-reloading
+    develop:
+      watch:
+        - action: sync
+          path: ./formulastrats
+          target: /app/formulastrats
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+    ports:
+      - "8000:8000"
+  scheduler:
+    develop:
+      watch:
+        - action: sync
+          path: ./live
+          target: /app/live
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+    environment:
+      - SIMULATION=true
+      - F1_SIMULATOR_WEBSOCKET_URL=ws://localhost:8001/ws/f1-data
+  redis:
+    image: redis/redis-stack
+    ports:
+      - "16379:6379"
+    volumes:
+      - ./data:/data:Z
+      - ./redis.conf:/redis-stack.conf:Z
