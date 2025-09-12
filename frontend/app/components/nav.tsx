@@ -21,14 +21,14 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
 
     return (
         <div className="lg:flex bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 h-full">
-            <div className="lg:w-1/5 flex flex-row justify-between items-center">
-                <p className='text- font-bold'>
+            <div className="lg:w-1/5 flex flex-row justify-between items-center p-2 lg:px-2">
+                <p className='text-sm lg:text-base font-bold'>
                     {session?.Meeting.Location} - {session?.Name}
                 </p>
-                <p className='text- font-bold'>
+                <p className='text-sm lg:text-base font-bold'>
                     {lapCount ? `Lap ${lapCount.CurrentLap} / ${lapCount.TotalLaps}` : ""}
                 </p>
-                <p className='text- font-bold'>
+                <p className='text-sm lg:text-base font-bold'>
                     {trackStatus
                         ? (trackStatus.Status === "1"
                             ? "Green"
@@ -36,10 +36,10 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                         : ""}
                 </p>
             </div>
-            <div className="lg:w-4/5 ml-2 flex items-center justify-around">
-                <div className="flex-grow" />
+            <div className="lg:w-4/5 flex flex-wrap items-center justify-center lg:justify-around p-2 lg:p-0">
+                <div className="hidden lg:flex flex-grow" />
                 {weatherData && (
-                    <div className="flex text-sm mr-10">
+                    <div className="w-full lg:w-auto flex flex-wrap justify-center text-sm my-1 lg:my-0 lg:mr-10">
                         <p className="mr-2">
                             <span className="font-semibold">Air:</span> {weatherData.AirTemp}°C
                         </p>
@@ -55,7 +55,7 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                     </div>
                 )}
                 {/* Driver and Penalty selectors */}
-                <div>
+                <div className="w-full lg:w-auto flex justify-center items-center my-1 lg:my-0">
                     <select
                         className="mr-1 border text-sm border-gray-300 dark:border-gray-600 rounded-md p-1 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
                         value={selectedDriver || ""}
@@ -82,9 +82,12 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                         <option value={20}>+20s</option>
                         <option value={25}>+25s</option>
                     </select>
+                    <div className="ml-4 lg:hidden">
+                        <Settings />
+                    </div>
                 </div>
-                <div className="flex-grow" />
-                <div className="ml-4">
+                <div className="hidden lg:flex flex-grow" />
+                <div className="ml-4 hidden lg:block">
                     <Settings />
                 </div>
             </div>

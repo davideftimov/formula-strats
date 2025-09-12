@@ -203,7 +203,7 @@ export default function Home() {
   return (
     <>
       <div className="w-full lg:h-[100vh] font-sans">
-        <div className="h-[4vh]">
+        <div className="lg:h-[4vh]">
           {sessionInfo && (
             <Nav
               session={sessionInfo}
