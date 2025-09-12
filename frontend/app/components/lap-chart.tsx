@@ -8,7 +8,6 @@ interface LapChartProps {
 }
 
 function parseTimeToSeconds(timeStr: string): number {
-	// Remove leading '+' or '-' if present
 	const cleanStr = timeStr.trim().replace(/^[+-]/, '');
 
 	if (cleanStr.includes(':')) {
@@ -54,13 +53,11 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 	const allDriverNumbers = useMemo(() => Object.keys(drivers), [drivers]);
 
-	// Process lap data
 	const processedData = useMemo(() => {
-		const lapsByDriver = new Map<string, Lap[]>(); // Key is string (RacingNumber)
+		const lapsByDriver = new Map<string, Lap[]>();
 
 		if (!laps.length) return lapsByDriver;
 
-		// Group laps by driver
 		laps.forEach(lap => {
 			if (!lapsByDriver.has(lap.RacingNumber)) {
 				lapsByDriver.set(lap.RacingNumber, []);
@@ -68,8 +65,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 			lapsByDriver.get(lap.RacingNumber)?.push(lap);
 		});
 
-		// Sort laps for each driver by lap number
-		lapsByDriver.forEach((driverLaps) => { // driverNumber (key) is not needed here
+		lapsByDriver.forEach((driverLaps) => {
 			driverLaps.sort((a, b) => a.LapNumber - b.LapNumber);
 		});
 
@@ -143,7 +139,6 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		};
 	}, [laps]);
 
-	// Function to check if a lap is an outlier
 	const isOutlier = useMemo(() => {
 		const upperThreshold = durationRanges.normalRange.maxDuration;
 		return (duration: number | null): boolean => {
@@ -152,16 +147,14 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		};
 	}, [durationRanges.normalRange.maxDuration]);
 
-	// Find driver name and color
-	const getDriverInfo = (driverRacingNumber: string) => { // Parameter is string
-		const driver = drivers[driverRacingNumber]; // Access DriverData by string key
+	const getDriverInfo = (driverRacingNumber: string) => {
+		const driver = drivers[driverRacingNumber];
 		return {
 			name: driver?.Tla || `D${driverRacingNumber}`,
 			color: driver?.TeamColour ? `#${driver.TeamColour}` : '#cccccc'
 		};
 	};
 
-	// Format the data for Recharts, considering selected drivers
 	const chartData = useMemo(() => {
 		const data: { lapNumber: number;[key: string]: number | null | string }[] = [];
 
@@ -171,9 +164,8 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		}
 
 		// Add lap times for selected drivers
-		processedData.forEach((driverLaps, driverRacingNumber) => { // driverRacingNumber is string
-			// Only include selected drivers
-			if (!selectedDrivers.has(driverRacingNumber)) { // Check with string
+		processedData.forEach((driverLaps, driverRacingNumber) => {
+			if (!selectedDrivers.has(driverRacingNumber)) {
 				return;
 			}
 
@@ -181,7 +173,6 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 
 			driverLaps.forEach(lap => {
 				const lap_s = parseTimeToSeconds(lap.LapTime);
-				// Skip outliers if we're not showing them
 				if (!showOutliers && lap_s !== null && isOutlier(lap_s)) {
 					return;
 				}
@@ -194,49 +185,44 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		});
 
 		return data;
-	}, [processedData, lapRange.minLap, lapRange.maxLap, showOutliers, isOutlier, selectedDrivers, getDriverInfo]); // Added getDriverInfo to dependencies
+	}, [processedData, lapRange.minLap, lapRange.maxLap, showOutliers, isOutlier, selectedDrivers, getDriverInfo]);
 
-	// Generate lines for selected drivers
 	const driverLines = useMemo(() => {
 		const lines: React.ReactNode[] = [];
 
-		processedData.forEach((_, driverRacingNumber) => { // driverRacingNumber is string
-			// Only include selected drivers
-			if (!selectedDrivers.has(driverRacingNumber)) { // Check with string
+		processedData.forEach((_, driverRacingNumber) => {
+			if (!selectedDrivers.has(driverRacingNumber)) {
 				return;
 			}
 			const { name, color } = getDriverInfo(driverRacingNumber);
 
 			lines.push(
 				<Line
-					key={driverRacingNumber} // Use string key
+					key={driverRacingNumber}
 					type="monotone"
 					dataKey={name}
 					stroke={color}
-					activeDot={{ r: 8 }}
+					activeDot={{ stroke: color, strokeWidth: 4, r: 4 }}
 					connectNulls
 					strokeWidth={2}
-					dot={{ stroke: color, strokeWidth: 2, r: 4 }}
+					dot={{ stroke: color, strokeWidth: 4, r: 1 }}
 				/>
 			);
 		});
 
 		return lines;
-	}, [processedData, selectedDrivers, getDriverInfo]); // Added getDriverInfo to dependencies
+	}, [processedData, selectedDrivers, getDriverInfo]);
 
-	// Handler for driver selection changes
-	const handleDriverSelect = (driverRacingNumber: string | 'all') => { // Parameter is string or 'all'
+	const handleDriverSelect = (driverRacingNumber: string | 'all') => {
 		setSelectedDrivers(prevSelected => {
 			const newSelected = new Set(prevSelected);
 			if (driverRacingNumber === 'all') {
-				// If "All Drivers" is checked, uncheck all. Otherwise, check all.
 				if (newSelected.size === allDriverNumbers.length) {
 					newSelected.clear();
 				} else {
 					allDriverNumbers.forEach(num => newSelected.add(num));
 				}
 			} else {
-				// Toggle individual driver selection
 				if (newSelected.has(driverRacingNumber)) {
 					newSelected.delete(driverRacingNumber);
 				} else {
@@ -247,14 +233,12 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		});
 	};
 
-	// Determine if "All Drivers" should be checked
 	const isAllSelected = selectedDrivers.size === allDriverNumbers.length && allDriverNumbers.length > 0;
 
 	if (!processedData.size) {
 		return <div className="text-gray-500 dark:text-gray-400 italic">No lap data available</div>;
 	}
 
-	// Create a custom tooltip formatter
 	const CustomTooltip = ({ active, payload, label }: any) => {
 		if (active && payload && payload.length) {
 			const filteredPayload = payload.filter((entry: { value: null | undefined; }) =>
@@ -286,7 +270,6 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 		return null;
 	};
 
-	// Select the y-axis domain based on user preference
 	const yAxisDomain = showOutliers
 		? [Math.max(0, durationRanges.fullRange.minDuration * 0.99), durationRanges.fullRange.maxDuration * 1.01]
 		: [durationRanges.normalRange.minDuration, durationRanges.normalRange.maxDuration];
@@ -334,10 +317,10 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 									All / None
 								</div>
 								{/* Individual Driver Options */}
-								{Object.values(drivers) // Iterate over DriverDetails from DriverData
-									.sort((a, b) => Number(a.RacingNumber) - Number(b.RacingNumber)) // Sort by RacingNumber (as number)
-									.map(driverDetail => { // driverDetail is DriverDetails
-										const driverRacingNumberStr = driverDetail.RacingNumber; // string
+								{Object.values(drivers)
+									.sort((a, b) => Number(a.RacingNumber) - Number(b.RacingNumber))
+									.map(driverDetail => {
+										const driverRacingNumberStr = driverDetail.RacingNumber;
 										const { name, color } = getDriverInfo(driverRacingNumberStr);
 										const isSelected = selectedDrivers.has(driverRacingNumberStr);
 										return (
@@ -349,7 +332,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 													className="mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
 												/>
 												<span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></span>
-												{driverDetail.Tla || name} {/* Use TLA from driverDetail or fallback name */}
+												{driverDetail.Tla || name}
 											</div>
 										);
 									})}
@@ -372,26 +355,25 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 				)}
 			</div>
 			{/* Chart Area */}
-			{/* Added dark mode background for chart container */}
 			<div className="flex-1 w-full bg-white dark:bg-gray-900">
 				<ResponsiveContainer width="100%" height="100%">
 					<LineChart
 						data={chartData}
 						margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
 					>
-						<CartesianGrid strokeDasharray="3 3" stroke="#4B5563" /> {/* gray-600 */}
+						<CartesianGrid strokeDasharray="5 5" stroke="#4B5563" /> {/* gray-600 */}
 						<XAxis
 							dataKey="lapNumber"
 							label={{ value: 'Lap', position: 'insideBottomRight', offset: -5, fill: '#9CA3AF' }} // gray-400
-							stroke="#9CA3AF" // gray-400
-							tick={{ fill: '#9CA3AF' }} // gray-400
+							stroke="#9CA3AF"
+							tick={{ fill: '#9CA3AF' }}
 						/>
 						<YAxis
 							domain={yAxisDomain}
-							label={{ value: 'Time (s)', angle: -90, position: 'insideLeft', offset: -5, fill: '#9CA3AF' }} // gray-400
-							stroke="#9CA3AF" // gray-400
+							label={{ value: 'Time (s)', angle: -90, position: 'insideLeft', offset: -5, fill: '#9CA3AF' }}
+							stroke="#9CA3AF"
 							tickFormatter={(value) => value.toFixed(1)}
-							tick={{ fill: '#9CA3AF' }} // gray-400
+							tick={{ fill: '#9CA3AF' }}
 						/>
 						<Tooltip content={<CustomTooltip />} />
 						<Legend />
