@@ -1,3 +1,2 @@
-.conda
-__pycache__
-api/testing
+.env
+*.log

@@ -12,3 +12,15 @@ services:
       - REDIS_URL=redis://redis:6379
     depends_on:
       - redis
+  scheduler:
+    build:
+      context: .
+      dockerfile: live/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SIMULATION=false
+      - INACTIVITY_TIMEOUT=60
+      - MONITOR_INTERVAL=10
+      - MAX_RECONNECT_DELAY=60
+    depends_on:
+      - redis
