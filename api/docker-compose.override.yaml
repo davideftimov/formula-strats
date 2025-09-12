@@ -19,6 +19,19 @@ services:
           path: uv.lock
     ports:
       - "8000:8000"
+  scheduler:
+    develop:
+      watch:
+        - action: sync
+          path: ./live
+          target: /app/live
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+    environment:
+      - SIMULATION=true
+      - F1_SIMULATOR_WEBSOCKET_URL=ws://localhost:8001/ws/f1-data
   redis:
     image: redis/redis-stack
     ports:
