@@ -70,7 +70,6 @@ export default function Home() {
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
   const { delay } = useSettings();
-  const [isStarting, setIsStarting] = useState<boolean>(false);
 
   const sseUrl = import.meta.env.VITE_SSE_URL;
 
@@ -191,15 +190,14 @@ export default function Home() {
   }
 
   if (loading) {
-    return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">Loading driver data...</div>;
-  }
-
-  if (error) {
-    return <div className="w-full p-5 my-5 font-sans text-red-500 dark:text-red-400">Error: {error}</div>;
-  }
-
-  if (isStarting) {
-    return <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300">The race is starting...</div>;
+    return (
+      <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300 flex flex-col items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
+        <div className="text-xl">
+          Warming up the engines... 🏎️💨
+        </div>
+      </div>
+    );
   }
 
   return (
