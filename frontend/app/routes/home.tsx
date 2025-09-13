@@ -191,7 +191,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="w-full p-5 my-5 font-sans text-gray-700 dark:text-gray-300 flex flex-col items-center">
+      <div className="w-full p-5 my-5 font-sans text-zinc-700 dark:text-zinc-300 flex flex-col items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
         <div className="text-xl">
           Warming up the engines... 🏎️💨
@@ -221,7 +221,7 @@ export default function Home() {
         {/* Two-column layout container */}
         <div className="lg:flex"> {/* h-full */}
           {/* Left column - Driver Rankings */}
-          <div className="lg:w-1/5 flex flex-col h-full justify-start border-r border-gray-200 dark:border-gray-700">
+          <div className="lg:w-1/5 flex flex-col h-full justify-start">
             {mappedDrivers.length > 0 && (
               <Rankings
                 drivers={mappedDrivers}

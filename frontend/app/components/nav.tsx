@@ -16,17 +16,14 @@ interface NavProps {
 
 export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weatherData, selectedPenalty, handlePenaltyChange, selectedDriver, handleDriverChange, drivers }) => {
     if (!session) {
-        return <div className="p-2 text-gray-500 dark:text-gray-400">No session data available.</div>;
+        return <div className="p-2 text-zinc-500 dark:text-zinc-400">No session data available.</div>;
     }
 
     return (
-        <div className="lg:flex bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 h-full">
-            <div className="lg:w-1/5 flex flex-row justify-between items-center p-2 lg:px-2">
+        <div className="lg:flex bg-zinc-200 dark:bg-black text-zinc-800 dark:text-zinc-200 h-full">
+            <div className="lg:w-1/5 flex flex-row justify-between items-center p-2 lg:px-2 lg:border border-zinc-300 dark:border-zinc-700">
                 <p className='text-sm lg:text-base font-bold'>
                     {session?.Meeting.Location} - {session?.Name}
-                </p>
-                <p className='text-sm lg:text-base font-bold'>
-                    {lapCount ? `Lap ${lapCount.CurrentLap} / ${lapCount.TotalLaps}` : ""}
                 </p>
                 <p className='text-sm lg:text-base font-bold'>
                     {trackStatus
@@ -34,6 +31,9 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                             ? "Green"
                             : trackStatus.Message)
                         : ""}
+                </p>
+                <p className='text-sm lg:text-base font-bold'>
+                    {lapCount ? `Lap ${lapCount.CurrentLap} / ${lapCount.TotalLaps}` : ""}
                 </p>
             </div>
             <div className="lg:w-4/5 flex flex-wrap items-center justify-center lg:justify-around p-2 lg:p-0">
@@ -57,7 +57,7 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                 {/* Driver and Penalty selectors */}
                 <div className="w-full lg:w-auto flex justify-center items-center my-1 lg:my-0">
                     <select
-                        className="mr-1 border text-sm border-gray-300 dark:border-gray-600 rounded-md p-1 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
+                        className="cursor-pointer mr-1 border text-sm border-zinc-300 dark:border-zinc-600 rounded-md p-1 pr-5 bg-white dark:bg-black focus:outline-none text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-md"
                         value={selectedDriver || ""}
                         onChange={handleDriverChange}
                     >
@@ -71,7 +71,7 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                             ))}
                     </select>
                     <select
-                        className="border text-sm border-gray-300 dark:border-gray-600 rounded-md p-1 pr-5 bg-white dark:bg-gray-800 focus:outline-none text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
+                        className="cursor-pointer border text-sm border-zinc-300 dark:border-zinc-600 rounded-md p-1 pr-5 bg-white dark:bg-black focus:outline-none text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-md"
                         value={selectedPenalty}
                         onChange={handlePenaltyChange}
                     >

@@ -36,7 +36,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="bg-white dark:bg-gray-900 text-black dark:text-white transition-colors duration-200">
+      <body className="bg-white dark:bg-black text-black dark:text-white transition-colors duration-200">
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -78,7 +78,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <h1>{message}</h1>
       <p>{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto bg-gray-100 dark:bg-gray-800 rounded">
+        <pre className="w-full p-4 overflow-x-auto bg-white dark:bg-black rounded">
           <code>{stack}</code>
         </pre>
       )}

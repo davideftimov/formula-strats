@@ -88,7 +88,7 @@ export const Settings: React.FC = () => {
 		<div className="relative">
 			<button
 				onClick={() => setIsOpen(!isOpen)}
-				className="settings-button text-gray-800 dark:text-gray-200 hover:text-orange-500 transition-colors duration-200 cursor-pointer p-1"
+				className="settings-button text-zinc-800 dark:text-zinc-200 hover:text-orange-500 transition-colors duration-200 cursor-pointer p-1"
 				aria-label="Settings"
 			>
 				<svg
@@ -106,24 +106,24 @@ export const Settings: React.FC = () => {
 			</button>
 
 			{isOpen && (
-				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg p-4 z-50 border border-gray-200 dark:border-gray-700">
-					<h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Settings</h3>
+				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-zinc-900 rounded-md shadow-lg p-4 z-50 border border-zinc-200 dark:border-zinc-700">
+					<h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Settings</h3>
 
 					<div className="mb-3">
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
 							Theme
 						</label>
 						<button
 							onClick={toggleTheme}
-							className="flex items-center justify-between w-full p-2 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+							className="flex items-center justify-between w-full p-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600"
 						>
-							<span className="text-sm text-gray-700 dark:text-gray-300">
+							<span className="text-sm text-zinc-700 dark:text-zinc-300">
 								{theme === "light" ? "Light Mode" : "Dark Mode"}
 							</span>
 							{theme === "light" ? (
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									className="h-5 w-5 text-gray-700"
+									className="h-5 w-5 text-zinc-700"
 									viewBox="0 0 20 20"
 									fill="currentColor"
 								>
@@ -132,7 +132,7 @@ export const Settings: React.FC = () => {
 							) : (
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
-									className="h-5 w-5 text-gray-300"
+									className="h-5 w-5 text-zinc-300"
 									viewBox="0 0 20 20"
 									fill="currentColor"
 								>
@@ -143,7 +143,7 @@ export const Settings: React.FC = () => {
 					</div>
 
 					<div>
-						<label htmlFor="delayInput" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label htmlFor="delayInput" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
 							Delay (seconds)
 						</label>
 						<input
@@ -151,7 +151,7 @@ export const Settings: React.FC = () => {
 							type="text"
 							inputMode="numeric"
 							pattern="[0-9]*"
-							className="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-700 focus:outline-none text-gray-700 dark:text-gray-200"
+							className="w-full border border-zinc-300 dark:border-zinc-600 rounded-md p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
 							value={inputValue}
 							onChange={(e) => {
 								const value = e.target.value;
@@ -171,7 +171,7 @@ export const Settings: React.FC = () => {
 								}
 							}}
 						/>
-						<p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						<p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
 							Add delay to simulate race broadcast delay
 						</p>
 					</div>

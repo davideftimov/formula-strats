@@ -18,7 +18,7 @@ export const Timeline: React.FC<TimelineProps> = ({ drivers }) => {
 	return (
 		<div className="relative w-full">
 			{/* Horizontal line */}
-			<div className="absolute top-10 left-0 w-full h-0.5 bg-gray-300 dark:bg-gray-600"></div>
+			<div className="absolute top-10 left-0 w-full h-0.5 bg-zinc-300 dark:bg-zinc-600"></div>
 
 			{/* Driver dots and labels */}
 			{(() => {
@@ -90,7 +90,7 @@ export const Timeline: React.FC<TimelineProps> = ({ drivers }) => {
 						>
 							{/* Driver dot */}
 							<div
-								className="w-5 h-5 rounded-full border-2 border-white dark:border-gray-800 shadow-md"
+								className="w-5 h-5 rounded-full border-2 border-white dark:border-zinc-800 shadow-md"
 								style={{ backgroundColor: driverPos.driver.color }}
 							/>
 
@@ -109,7 +109,7 @@ export const Timeline: React.FC<TimelineProps> = ({ drivers }) => {
 
 							{/* Driver name */}
 							<div
-								className="absolute px-1.5 py-0.5 rounded font-bold whitespace-nowrap z-10 text-sm bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100"
+								className="absolute px-1.5 py-0.5 rounded font-bold whitespace-nowrap z-10 text-sm bg-white/90 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100"
 								style={{
 									top: `${lineHeight + 5}px`,
 									left: '50%',
