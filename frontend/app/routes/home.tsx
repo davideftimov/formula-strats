@@ -75,6 +75,7 @@ export default function Home() {
 
   const { error, isConnected } = useSSE({
     url: sseUrl,
+    delay,
   });
 
   const loading = !sessionInfo || !driverData || !timingData;
@@ -194,7 +195,7 @@ export default function Home() {
       <div className="w-full p-5 my-5 font-sans text-zinc-700 dark:text-zinc-300 flex flex-col items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
         <div className="text-xl">
-          Warming up the engines... 🏎️💨
+          Warming up the engines...
         </div>
       </div>
     );
