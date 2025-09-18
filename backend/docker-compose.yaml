@@ -7,15 +7,15 @@ services:
   api:
     build:
       context: .
-      dockerfile: formulastrats/app/Dockerfile
+      dockerfile: services/api/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
     depends_on:
       - redis
-  scheduler:
+  ingestor:
     build:
       context: .
-      dockerfile: live/Dockerfile
+      dockerfile: services/ingestor/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
       - SIMULATION=false

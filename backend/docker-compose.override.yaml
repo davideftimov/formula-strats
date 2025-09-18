@@ -1,17 +1,17 @@
 services:
   api:
     # hot-reloading for development
-    command: ["uvicorn", "formulastrats.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     
     # podman-compose hot-reloading
     volumes:
-      - ./formulastrats:/app/formulastrats:Z
+      - ./services/api:/app/formulastrats:Z
       
     # docker-compose hot-reloading
     develop:
       watch:
         - action: sync
-          path: ./formulastrats
+          path: ./services/api
           target: /app/formulastrats
         - action: rebuild
           path: pyproject.toml
@@ -19,12 +19,12 @@ services:
           path: uv.lock
     ports:
       - "8000:8000"
-  scheduler:
+  ingestor:
     develop:
       watch:
         - action: sync
-          path: ./live
-          target: /app/live
+          path: ./services/ingestor
+          target: /app/ingestor
         - action: rebuild
           path: pyproject.toml
         - action: rebuild

@@ -43,7 +43,7 @@ def get_future_events(ics_url: str) -> list[tuple]:
 
 	try:
 		cal = Calendar.from_ical(cal_content)
-		now = datetime.now(ZoneInfo("UTC"))  # Updated from pytz.utc to ZoneInfo("UTC")
+		now = datetime.now(ZoneInfo("UTC"))
 
 		for component in cal.walk():
 			if component.name == "VEVENT":
@@ -74,9 +74,6 @@ def run_websocket_program():
     """
     logging.info(f"Starting websocket program: {WEBSOCKET_PROGRAM_PATH}")
     try:
-        # You might want to use Popen for more control if the script is long-running
-        # and you don't want to wait for it here.
-        # For simplicity, using run and capturing output.
         process = subprocess.run(
             [PYTHON_EXECUTABLE, WEBSOCKET_PROGRAM_PATH],
             capture_output=True,
@@ -101,34 +98,24 @@ def update_schedules():
     """
     logging.info("Updating schedules from ICS calendar...")
     try:
-        # 1. Get current scheduled job times (optional, for smarter updates)
-        # current_job_times = set()
-        # for job in scheduler.get_jobs():
-        #     if job.id.startswith(JOB_ID_PREFIX) and isinstance(job.trigger, DateTrigger):
-        #         current_job_times.add(job.trigger.run_date)
-
-        # 2. Remove old jobs (simple approach: remove all, then re-add)
-        # More sophisticated: only remove jobs whose times are no longer in the new schedule
-        # or are in the past.
+        # 1. Remove old jobs
         jobs_to_remove = [job for job in scheduler.get_jobs() if job.id.startswith(JOB_ID_PREFIX)]
         for job in jobs_to_remove:
             logging.info(f"Removing old job: {job.id} scheduled for {job.trigger.run_date}")
             job.remove()
 
-        # 3. Fetch new event times
-        # Look ahead further than the check interval to ensure events aren't missed
+        # 2. Fetch new event times
         future_event_times = get_future_events(CALENDAR_URL)
 
-        # 4. Add new jobs
-        now = datetime.now(ZoneInfo("UTC"))  # Updated from pytz.utc to ZoneInfo("UTC")
+        # 3. Add new jobs
+        now = datetime.now(ZoneInfo("UTC"))
         for i, event in enumerate(future_event_times):
-            if event[0] > now: # Ensure we only schedule for the future
+            if event[0] > now:
                 job_id = f"{JOB_ID_PREFIX}{event[0].strftime('%Y%m%d%H%M%S')}_{i}"
-                # Ensure event_time is UTC for APScheduler if scheduler is UTC-aware
                 if event[0].tzinfo is None:
-                    event_time_utc = event[0].replace(tzinfo=ZoneInfo("UTC"))  # Updated from pytz.utc.localize
+                    event_time_utc = event[0].replace(tzinfo=ZoneInfo("UTC"))
                 else:
-                    event_time_utc = event[0].astimezone(ZoneInfo("UTC"))  # Updated from event_time.astimezone(pytz.utc)
+                    event_time_utc = event[0].astimezone(ZoneInfo("UTC"))
 
                 logging.info(f"Scheduling job {job_id} for: {event_time_utc}")
                 scheduler.add_job(
@@ -152,7 +139,6 @@ if __name__ == "__main__":
     logging.info("Scheduler starting. Performing initial schedule update.")
     update_schedules()
 
-    # Schedule the `update_schedules` function to run periodically
     scheduler.add_job(
         update_schedules,
         trigger='interval',

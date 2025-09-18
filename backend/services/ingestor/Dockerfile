@@ -7,18 +7,17 @@ ENV UV_COMPILE_BYTECODE=1
 # Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy
 
-COPY pyproject.toml uv.lock ./ 
+COPY pyproject.toml uv.lock ./
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project
 
-COPY ./formulastrats ./formulastrats
+COPY ./services/ingestor ./ingestor
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-EXPOSE 8000
+CMD ["python", "ingestor/runner.py"]
 
-CMD ["uvicorn", "formulastrats.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

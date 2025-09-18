@@ -10,7 +10,7 @@ services:
       - VIRTUAL_HOST=api.formulastrats.com
       - LETSENCRYPT_HOST=api.formulastrats.com
       - LETSENCRYPT_EMAIL=davideftimov2112@gmail.com
-  scheduler:
+  ingestor:
     restart: unless-stopped
   redis:
     restart: unless-stopped
