@@ -202,9 +202,10 @@ class LiveFeed:
             existing_data = json.loads(existing_json).get("payload", {})
             if isinstance(existing_data, dict) and isinstance(payload, dict):
                 new_payload = deep_merge_dicts(existing_data, payload)
-            if isinstance(existing_data, list) and isinstance(payload, dict):
+            elif isinstance(existing_data, list) and isinstance(payload, dict):
                 new_payload = merge_list_with_dict(existing_data, payload)
             else:
+                logging.warning(f"Unhandled data structure for merging: {type(existing_data)} and {type(payload)}")
                 return
         else:
             new_payload = payload
