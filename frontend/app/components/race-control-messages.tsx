@@ -24,7 +24,7 @@ export const RaceControlMessages: React.FC<RaceControlMessagesProps> = ({ messag
 									className={index % 2 === 0 ? 'bg-zinc-50 dark:bg-black' : 'bg-white dark:bg-black'}
 								>
 									<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 w-12 align-top">
-										{message.Lap ? `L${message.Lap}` : new Date(message.Utc).toLocaleTimeString()}
+										{message.Lap ? `L${message.Lap}` : new Date(`${message.Utc}Z`).toLocaleTimeString()}
 									</td>
 									<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700">
 										{message.Message}
