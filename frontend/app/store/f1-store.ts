@@ -1,5 +1,5 @@
 import { Store } from '@tanstack/store'
-import type { SessionInfo, DriverData, LapCount, TrackStatus, TimingData, Lap, WeatherData, Heartbeat } from '~/types';
+import type { SessionInfo, DriverData, LapCount, TrackStatus, TimingData, Lap, WeatherData, Heartbeat, RaceControlMessages } from '~/types';
 
 interface F1State {
     sessionInfo: SessionInfo | null;
@@ -10,6 +10,7 @@ interface F1State {
     lapData: Lap[];
     weatherData: WeatherData | null;
     heartbeat: Heartbeat | null;
+    raceControlMessages: RaceControlMessages | null;
 }
 
 export const f1Store = new Store<F1State>({
@@ -21,4 +22,5 @@ export const f1Store = new Store<F1State>({
     lapData: [],
     weatherData: null,
     heartbeat: null,
+    raceControlMessages: null,
 });

@@ -37,6 +37,23 @@ def deep_merge_dicts(dict1, dict2):
             merged[key] = value_from_dict2
     return merged
 
+def merge_list_with_dict(lst: list, dct: dict) -> None:
+    """
+    Merge a dictionary into a list.
+    For each key in the dict:
+      - if the key is an integer and the index exists in the list, update that index
+      - otherwise, append the value to the list
+    """
+    for key, value in dct.items():
+        try:
+            index = int(key)
+            if 0 <= index < len(lst):
+                lst[index] = value
+            else:
+                lst.append(value)
+        except ValueError:
+            lst.append(value)
+
 def extract_laps(payload):
     """Extracts lap time events from the payload."""
     lap_events = []
@@ -96,7 +113,7 @@ class LiveFeed:
         await self._websocket.send(json.dumps({
             "H": "Streaming",
             "M": "Subscribe",
-            "A": [["Heartbeat", "TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData"]],
+            "A": [["Heartbeat", "RaceControlMessages", "TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData"]],
             "I": 1
         }))
 
@@ -180,14 +197,19 @@ class LiveFeed:
 
     async def _process_stream_message(self, msg_type, payload):
         """Handles a streaming message of a given type."""
-        await self._redis_client.publish("channel:1", json.dumps({"type": msg_type, "payload": payload}))
-
         existing_json = await self._redis_client.get(msg_type)
         if existing_json:
-            existing_data = json.loads(existing_json)
-            new_payload = deep_merge_dicts(existing_data.get("payload", {}), payload)
+            existing_data = json.loads(existing_json).get("payload", {})
+            if isinstance(existing_data, dict) and isinstance(payload, dict):
+                new_payload = deep_merge_dicts(existing_data, payload)
+            if isinstance(existing_data, list) and isinstance(payload, dict):
+                new_payload = merge_list_with_dict(existing_data, payload)
+            else:
+                return
         else:
             new_payload = payload
+        
+        await self._redis_client.publish("channel:1", json.dumps({"type": msg_type, "payload": new_payload}))
 
         await self._redis_client.set(msg_type, json.dumps({"type": msg_type, "payload": new_payload}))
 
@@ -210,7 +232,7 @@ class LiveFeed:
         """Clears relevant keys in Redis."""
         logging.info("Clearing Redis keys...")
         keys_to_delete = [
-            "Heartbeat", "DriverList", "SessionInfo", "LapCount", 
+            "Heartbeat", "RaceControlMessages", "DriverList", "SessionInfo", "LapCount", 
             "TrackStatus", "TimingData", "LapData", "WeatherData"
         ]
         await self._redis_client.delete(*keys_to_delete)

@@ -1,0 +1,38 @@
+import React from 'react';
+import type { RaceControlMessage } from '~/types';
+
+interface RaceControlMessagesProps {
+	messages: RaceControlMessage[];
+}
+
+export const RaceControlMessages: React.FC<RaceControlMessagesProps> = ({ messages }) => {
+	if (!messages || messages.length === 0) {
+		return <div className="p-2 text-zinc-500 dark:text-zinc-400">No race control messages.</div>;
+	}
+
+	const reversedMessages = [...messages].reverse();
+
+	return (
+		<div className="flex flex-col h-full justify-start text-sm">
+			<div>
+				<div className="max-w-full">
+					<table className="bg-white dark:bg-black shadow-sm w-full">
+						<tbody>
+							{reversedMessages.map((message, index) => (
+								<tr
+									key={index}
+									className={index % 2 === 0 ? 'bg-zinc-50 dark:bg-black' : 'bg-white dark:bg-black'}
+								>
+									<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 w-12 align-top">L{message.Lap}</td>
+									<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700">
+										{message.Message}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	);
+};

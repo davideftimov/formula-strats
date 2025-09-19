@@ -14,7 +14,7 @@ export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 		<div className="flex flex-col h-full justify-start">
 			<div>
 				<div className="max-w-full">
-					<table className="bg-white dark:bg-black border-x border-t lg:border-t-0 border-b border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm w-full">
+					<table className="bg-white dark:bg-black w-full">
 						<tbody>
 							{drivers.map((driver, index) => {
 								const baseRowClass = index % 2 === 0 ? 'bg-zinc-50 dark:bg-black' : 'bg-white dark:bg-black';

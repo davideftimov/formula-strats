@@ -11,6 +11,7 @@ import useSSE from '~/hooks/useSSE';
 import { Nav } from '~/components/nav';
 import { useStore } from '@tanstack/react-store';
 import { f1Store } from '~/store/f1-store';
+import { RaceControlMessages } from '~/components/race-control-messages';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -66,7 +67,7 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData } = useStore(f1Store);
+  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData, raceControlMessages } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
   const { delay } = useSettings();
@@ -220,28 +221,35 @@ export default function Home() {
           )}
         </div>
         {/* Two-column layout container */}
-        <div className="lg:flex"> {/* h-full */}
-          {/* Left column - Driver Rankings */}
-          <div className="lg:w-1/5 flex flex-col h-full justify-start">
+        <div className="lg:flex lg:h-[96vh]">
+          {/* Left column - Driver Rankings and Race Control */}
+          <div className="lg:w-1/5 flex flex-col">
             {mappedDrivers.length > 0 && (
-              <Rankings
-                drivers={mappedDrivers}
-              />
+              <div className="overflow-y-auto lg:basis-3/4 border-x border-t lg:border-t-0 border-b border-zinc-200 dark:border-zinc-700">
+                <Rankings
+                  drivers={mappedDrivers}
+                />
+              </div>
+            )}
+            {raceControlMessages && raceControlMessages.Messages.length > 0 && (
+              <div className="h-[25vh] overflow-y-auto lg:basis-1/4 lg:h-auto border-x border-b border-zinc-200 dark:border-zinc-700">
+                <RaceControlMessages messages={raceControlMessages.Messages} />
+              </div>
             )}
           </div>
 
-          {/* Right column - Selectors, Timeline, and Charts */}
-          <div className="lg:w-4/5">
+          {/* Right column - Timeline, and Charts */}
+          <div className="lg:w-4/5 lg:flex lg:flex-col">
             {/* Driver timeline */}
             {mappedDrivers.length > 0 && (
-              <div className='px-6 h-[25vh] pt-2'>
+              <div className="h-[25vh] px-6 pt-2 overflow-y-auto lg:basis-1/4 lg:h-auto">
                 <Timeline drivers={mappedDrivers} />
               </div>
             )}
 
             {/* Lap Chart */}
             {lapData.length > 0 && (
-              <div className="ml-2 h-[71vh]">
+              <div className="h-[70vh] ml-2 lg:basis-3/4 lg:h-auto">
                 <LapChart laps={lapData} drivers={driverData} />
               </div>
             )}

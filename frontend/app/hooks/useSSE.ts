@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData, LapCount, TrackStatus, Heartbeat } from '~/types';
+import type { F1Message, SessionInfo, DriverData, TimingData, Lap, WeatherData, LapCount, TrackStatus, Heartbeat, RaceControlMessages } from '~/types';
 import { f1Store } from '~/store/f1-store';
 import { merge } from 'lodash';
 import { logger } from '~/utils/logger';
@@ -31,6 +31,9 @@ const processF1Message = (message: F1Message) => {
 	} else if (message.type === 'Heartbeat') {
 		f1Store.setState(state => ({ ...state, heartbeat: messagePayload as Heartbeat }));
 		logger.log('SSE LEVEL HEARTBEAT PARSED:', message);
+	} else if (message.type === 'RaceControlMessages') {
+		f1Store.setState(state => ({ ...state, raceControlMessages: messagePayload as RaceControlMessages }));
+		logger.log('SSE LEVEL RACE CONTROL MESSAGES PARSED:', message);
 	} else {
 		logger.warn(
 			`Received SSE message with unhandled data structure. Type: ${message.type}`,

@@ -50,7 +50,7 @@ async def stream_f1_data(
         try:
             redis_client = request.app.state.redis
 
-            initial_data_keys = ["DriverList", "SessionInfo", "LapCount", "TrackStatus", "TimingData", "WeatherData", "Heartbeat"]
+            initial_data_keys = ["DriverList", "SessionInfo", "LapCount", "TrackStatus", "RaceControlMessages", "TimingData", "WeatherData", "Heartbeat"]
             for key in initial_data_keys:
                 try:
                     message_data_bytes = await redis_client.get(key)
