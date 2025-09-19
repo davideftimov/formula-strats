@@ -196,7 +196,7 @@ export interface RaceControlMessages {
 
 export interface RaceControlMessage {
 	Utc: string;
-	Lap: number;
+	Lap?: number;
 	Category: string;
 	Flag?: string;
 	Scope?: string;
