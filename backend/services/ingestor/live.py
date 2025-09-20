@@ -27,32 +27,37 @@ def fix_json(elem):
     elem = re.sub(r'(\w)"(\w)', r'\1\\"\2', elem)
     return elem
 
-def deep_merge_dicts(dict1, dict2):
-    """Recursively merges two dictionaries."""
-    merged = dict1.copy()
-    for key, value_from_dict2 in dict2.items():
-        if key in merged and isinstance(merged.get(key), dict) and isinstance(value_from_dict2, dict):
-            merged[key] = deep_merge_dicts(merged[key], value_from_dict2)
-        else:
-            merged[key] = value_from_dict2
-    return merged
+def merge(target, source):
+    """
+    Recursively merges a source object into a target object.
+    """
+    if isinstance(target, dict) and isinstance(source, dict):
+        for key, value in source.items():
+            if key in target:
+                target[key] = merge(target[key], value)
+            else:
+                target[key] = value
+        return target
+    elif isinstance(target, list) and isinstance(source, dict):
+        return merge_list_with_dict(target, source)
+    else:
+        return source
 
-def merge_list_with_dict(lst: list, dct: dict) -> None:
+def merge_list_with_dict(target_list: list, source_dict: dict) -> list:
     """
-    Merge a dictionary into a list.
-    For each key in the dict:
-      - if the key is an integer and the index exists in the list, update that index
-      - otherwise, append the value to the list
+    Merges a dictionary into a list.
     """
-    for key, value in dct.items():
+    for key, value in source_dict.items():
         try:
             index = int(key)
-            if 0 <= index < len(lst):
-                lst[index] = value
+            if 0 <= index < len(target_list):
+                target_list[index] = merge(target_list[index], value)
             else:
-                lst.append(value)
+                target_list.append(value)
         except ValueError:
-            lst.append(value)
+            logging.warning(f"Key '{key}' is not an integer, appending value.")
+            target_list.append(value)
+    return target_list
 
 def extract_laps(payload):
     """Extracts lap time events from the payload."""
@@ -113,7 +118,7 @@ class LiveFeed:
         await self._websocket.send(json.dumps({
             "H": "Streaming",
             "M": "Subscribe",
-            "A": [["Heartbeat", "RaceControlMessages", "TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData"]],
+            "A": [["Heartbeat", "RaceControlMessages", "TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData", "WeatherDataSeries"]],
             "I": 1
         }))
 
@@ -200,13 +205,7 @@ class LiveFeed:
         existing_json = await self._redis_client.get(msg_type)
         if existing_json:
             existing_data = json.loads(existing_json).get("payload", {})
-            if isinstance(existing_data, dict) and isinstance(payload, dict):
-                new_payload = deep_merge_dicts(existing_data, payload)
-            elif isinstance(existing_data, list) and isinstance(payload, dict):
-                new_payload = merge_list_with_dict(existing_data, payload)
-            else:
-                logging.warning(f"Unhandled data structure for merging: {type(existing_data)} and {type(payload)}")
-                return
+            new_payload = merge(existing_data, payload)
         else:
             new_payload = payload
         
@@ -234,7 +233,7 @@ class LiveFeed:
         logging.info("Clearing Redis keys...")
         keys_to_delete = [
             "Heartbeat", "RaceControlMessages", "DriverList", "SessionInfo", "LapCount", 
-            "TrackStatus", "TimingData", "LapData", "WeatherData"
+            "TrackStatus", "TimingData", "LapData", "WeatherData" "WeatherDataSeries"
         ]
         await self._redis_client.delete(*keys_to_delete)
 
