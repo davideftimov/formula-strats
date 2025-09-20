@@ -370,7 +370,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 						/>
 						<YAxis
 							domain={yAxisDomain}
-							label={{ value: 'Time (s)', angle: -90, position: 'insideLeft', offset: -5, fill: '#9CA3AF' }}
+							label={{ value: 'Time (s)', angle: -90, position: 'insideLeft', offset: 0, fill: '#9CA3AF' }}
 							stroke="#9CA3AF"
 							tickFormatter={(value) => value.toFixed(1)}
 							tick={{ fill: '#9CA3AF' }}

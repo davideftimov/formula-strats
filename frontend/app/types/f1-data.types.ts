@@ -99,7 +99,7 @@ export interface PersonalBestLapTime {
 
 export interface F1Message {
 	type: string; // e.g., "DriverTracker", "LapData"
-	payload: DriverData | TimingData | SessionInfo | LapCount | TrackStatus | Lap[] | WeatherData | Heartbeat | RaceControlMessages;
+	payload: DriverData | TimingData | SessionInfo | LapCount | TrackStatus | Lap[] | WeatherData | Heartbeat | RaceControlMessages | WeatherDataSeries;
 }
 
 export interface Heartbeat {
@@ -161,6 +161,15 @@ export interface Meeting {
 	Name: string;
 	Country: Country;
 	Circuit: Circuit;
+}
+
+export interface WeatherDataSeries {
+	Series: WeatherDataEntry[];
+}
+
+export interface WeatherDataEntry {
+	Timestamp: string;
+	Weather: WeatherData;
 }
 
 export interface WeatherData {

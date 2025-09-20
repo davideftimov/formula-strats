@@ -50,7 +50,7 @@ export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weathe
                             <span className="font-semibold">Rain:</span> {weatherData.Rainfall === "1" ? "Yes" : "No"}
                         </p>
                         <p>
-                            <span className="font-semibold">Wind:</span> {weatherData.WindSpeed} km/h
+                            <span className="font-semibold">Wind:</span> {weatherData.WindSpeed} m/s
                         </p>
                     </div>
                 )}

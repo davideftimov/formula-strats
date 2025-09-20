@@ -12,6 +12,7 @@ import { Nav } from '~/components/nav';
 import { useStore } from '@tanstack/react-store';
 import { f1Store } from '~/store/f1-store';
 import { RaceControlMessages } from '~/components/race-control-messages';
+import { WeatherCharts } from '~/components/weather-charts';
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -67,7 +68,7 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData, raceControlMessages } = useStore(f1Store);
+  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData, raceControlMessages, weatherDataSeries } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
   const { delay } = useSettings();
@@ -247,10 +248,19 @@ export default function Home() {
               </div>
             )}
 
-            {/* Lap Chart */}
-            {lapData.length > 0 && (
-              <div className="h-[70vh] ml-2 lg:basis-3/4 lg:h-auto">
-                <LapChart laps={lapData} drivers={driverData} />
+            {/* Charts */}
+            {(lapData.length > 0 || (weatherDataSeries && weatherDataSeries.Series.length > 0)) && (
+              <div className="lg:basis-3/4 lg:h-auto flex flex-col lg:flex-row">
+                {lapData.length > 0 && (
+                  <div className="h-[70vh] w-full lg:ml-2 lg:w-2/3 lg:h-auto">
+                    <LapChart laps={lapData} drivers={driverData} />
+                  </div>
+                )}
+                {weatherDataSeries && weatherDataSeries.Series.length > 0 && (
+                  <div className="h-[70vh] w-full lg:w-1/3 lg:h-auto">
+                    <WeatherCharts weatherDataSeries={weatherDataSeries} />
+                  </div>
+                )}
               </div>
             )}
           </div>
