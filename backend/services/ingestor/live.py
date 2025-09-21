@@ -118,7 +118,7 @@ class LiveFeed:
         await self._websocket.send(json.dumps({
             "H": "Streaming",
             "M": "Subscribe",
-            "A": [["Heartbeat", "RaceControlMessages", "TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData", "WeatherDataSeries"]],
+            "A": [["Heartbeat", "RaceControlMessages", "TimingData", "SessionInfo", "LapCount", "TrackStatus", "DriverList", "WeatherData", "WeatherDataSeries", "TyreStintSeries"]],
             "I": 1
         }))
 
@@ -233,7 +233,7 @@ class LiveFeed:
         logging.info("Clearing Redis keys...")
         keys_to_delete = [
             "Heartbeat", "RaceControlMessages", "DriverList", "SessionInfo", "LapCount", 
-            "TrackStatus", "TimingData", "LapData", "WeatherData" "WeatherDataSeries"
+            "TrackStatus", "TimingData", "LapData", "WeatherData" "WeatherDataSeries", "TyreStintSeries"
         ]
         await self._redis_client.delete(*keys_to_delete)
 

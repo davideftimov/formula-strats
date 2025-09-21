@@ -5,6 +5,23 @@ interface RankingsProps {
 	drivers: DriverInterval[];
 }
 
+const getCompoundStyle = (compound: string): React.CSSProperties => {
+	switch (compound?.toUpperCase()) {
+		case 'SOFT':
+			return { color: '#EF4444' };
+		case 'MEDIUM':
+			return { color: '#EAB308' };
+		case 'HARD':
+			return { color: '#9F9FA9' };
+		case 'INTERMEDIATE':
+			return { color: '#22C55E' };
+		case 'WET':
+			return { color: '#3B82F6' };
+		default:
+			return { color: '#E4E4E7' };
+	}
+};
+
 export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 	if (!drivers || drivers.length === 0) {
 		return <div className="p-2 text-zinc-500 dark:text-zinc-400">No driver data available.</div>;
@@ -32,6 +49,16 @@ export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 													style={{ backgroundColor: driver.color }}
 												/>
 												<span>{driver.name}</span>
+											</div>
+										</td>
+										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700">
+											<div className="flex items-center text-xs space-x-1.5">
+												{driver.stints?.map((stint, i) => (
+													<span key={i} style={getCompoundStyle(stint.Compound)} className="font-semibold">
+														{stint.Compound.toUpperCase() === 'UNKNOWN' ? ('?') : (stint.Compound.charAt(0))}
+														<span className="font-normal text-zinc-500 dark:text-zinc-400">{stint.TotalLaps}</span>
+													</span>
+												))}
 											</div>
 										</td>
 										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 text-right w-28">

@@ -24,7 +24,8 @@ export interface DriverInterval {
 	color: string;
 	gapDisplay: string;
 	gapInSeconds: number;
-	isSpecialStatus: boolean,
+	isSpecialStatus: boolean;
+	stints?: TyreStint[];
 }
 
 export interface TimingData {
@@ -99,7 +100,7 @@ export interface PersonalBestLapTime {
 
 export interface F1Message {
 	type: string; // e.g., "DriverTracker", "LapData"
-	payload: DriverData | TimingData | SessionInfo | LapCount | TrackStatus | Lap[] | WeatherData | Heartbeat | RaceControlMessages | WeatherDataSeries;
+	payload: DriverData | TimingData | SessionInfo | LapCount | TrackStatus | Lap[] | WeatherData | Heartbeat | RaceControlMessages | WeatherDataSeries | TyreStintSeries;
 }
 
 export interface Heartbeat {
@@ -212,4 +213,18 @@ export interface RaceControlMessage {
 	Sector?: number;
 	Status?: string;
 	Message: string;
+}
+
+export interface TyreStintSeries {
+	Stints: {
+		[driverNumber: string]: TyreStint[];
+	};
+}
+
+export interface TyreStint {
+	Compound: string;
+	New: string;
+	TyresNotChanged: string;
+	TotalLaps: number;
+	StartLaps: number;
 }

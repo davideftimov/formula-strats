@@ -68,7 +68,7 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData, raceControlMessages, weatherDataSeries } = useStore(f1Store);
+  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData, raceControlMessages, weatherDataSeries, tyreStintSeries } = useStore(f1Store);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
   const { delay } = useSettings();
@@ -95,6 +95,7 @@ export default function Home() {
     let currentDrivers: DriverInterval[] = driverKeys.map(racingNumber => {
       const driverTimingInfo = timingData.Lines[racingNumber];
       const driverDetails = driverData[racingNumber];
+      const driverStints = tyreStintSeries?.Stints[racingNumber];
 
       if (!driverDetails) {
         logger.warn(`Driver details not found for racing number: ${racingNumber}`);
@@ -147,6 +148,7 @@ export default function Home() {
         gapDisplay: gapDisplay,
         gapInSeconds: gapInSeconds,
         isSpecialStatus: isSpecialStatus,
+        stints: driverStints,
       };
     }).sort((a, b) => a.position - b.position);
 
@@ -181,7 +183,7 @@ export default function Home() {
 
     logger.log("Final computed drivers in useMemo", currentDrivers);
     return currentDrivers;
-  }, [sessionInfo, timingData, driverData, selectedDriver, selectedPenalty]);
+  }, [sessionInfo, timingData, driverData, selectedDriver, selectedPenalty, tyreStintSeries]);
 
 
   function handleDriverChange(event: React.ChangeEvent<HTMLSelectElement>) {
