@@ -57,6 +57,7 @@ async def stream_f1_data(
                     if message_data_bytes:
                         message_data_str = message_data_bytes.decode('utf-8')
                         yield f"data: {message_data_str}\n\n"
+                        await asyncio.sleep(0.01)
                     else:
                         print(f"(SSE Stream) No initial data found for {key}")
                 except Exception as e:
@@ -72,6 +73,7 @@ async def stream_f1_data(
                     laps_chunk = laps[i:i + chunk_size]
                     laps_json = json.dumps({"type": "LapData", "payload": laps_chunk})
                     yield f"data: {laps_json}\n\n"
+                    await asyncio.sleep(0.01)
 
             pubsub = redis_client.pubsub()
             await pubsub.subscribe(REDIS_CHANNEL_NAME)
