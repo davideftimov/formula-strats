@@ -2,6 +2,8 @@
 
 Formula Strats is a web application that analyzes and presents live Formula 1 data to provide strategic insights. The best companion for all armchair strategists.
 
+![UI Screenshot](./assets/UI.png)
+
 ## Key Features
 - Pit simulation
     * Choose your driver (optionally add penalty to be served)
