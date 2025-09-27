@@ -13,7 +13,7 @@ import requests
 from icalendar import Calendar
 
 CALENDAR_URL = os.getenv("CALENDAR_URL", "https://ics.ecal.com/ecal-sub/6831cb8cdb165a00083b099f/Formula%201.ics")
-WEBSOCKET_PROGRAM_PATH = "live/live.py"
+WEBSOCKET_PROGRAM_PATH = "ingestor/live.py"
 PYTHON_EXECUTABLE = sys.executable
 CHECK_CALENDAR_INTERVAL_HOURS = int(os.getenv("CHECK_CALENDAR_INTERVAL_HOURS", "6"))
 JOB_ID_PREFIX = "websocket_ingest_"
