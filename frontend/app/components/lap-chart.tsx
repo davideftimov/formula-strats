@@ -27,10 +27,6 @@ export const LapChart: React.FC = () => {
 		drivers: state.driverData,
 	}));
 
-	if (!laps || laps.length === 0 || !drivers || Object.keys(drivers).length === 0) {
-		return null;
-	}
-
 	const [showOutliers, setShowOutliers] = useState(false);
 	const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
 	const [isSelectorOpen, setIsSelectorOpen] = useState(false);
