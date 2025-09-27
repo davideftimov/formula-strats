@@ -1,11 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import type { Lap, DriverData } from '~/types';
+import { useStore } from '@tanstack/react-store';
+import { f1Store } from '~/store/f1-store';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-interface LapChartProps {
-	laps: Lap[];
-	drivers: DriverData;
-}
 
 function parseTimeToSeconds(timeStr: string): number {
 	const cleanStr = timeStr.trim().replace(/^[+-]/, '');
@@ -25,7 +21,16 @@ function parseTimeToSeconds(timeStr: string): number {
 	}
 }
 
-export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
+export const LapChart: React.FC = () => {
+	const { laps, drivers } = useStore(f1Store, (state) => ({
+		laps: state.lapData,
+		drivers: state.driverData,
+	}));
+
+	if (!laps || laps.length === 0 || !drivers || Object.keys(drivers).length === 0) {
+		return null;
+	}
+
 	const [showOutliers, setShowOutliers] = useState(false);
 	const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
 	const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -54,7 +59,7 @@ export const LapChart: React.FC<LapChartProps> = ({ laps, drivers }) => {
 	const allDriverNumbers = useMemo(() => Object.keys(drivers), [drivers]);
 
 	const processedData = useMemo(() => {
-		const lapsByDriver = new Map<string, Lap[]>();
+		const lapsByDriver = new Map<string, any[]>();
 
 		if (!laps.length) return lapsByDriver;
 

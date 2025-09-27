@@ -1,10 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { WeatherDataSeries } from '~/types';
-
-interface WeatherChartsProps {
-    weatherDataSeries: WeatherDataSeries;
-}
+import { useStore } from '@tanstack/react-store';
+import { f1Store } from '~/store/f1-store';
 
 const formatXAxis = (time: string) => {
     const date = new Date(time);
@@ -30,7 +27,13 @@ const WindDirectionArrow = (props: any) => {
     );
 };
 
-export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherDataSeries }) => {
+export const WeatherCharts: React.FC = () => {
+    const weatherDataSeries = useStore(f1Store, (state) => state.weatherDataSeries);
+
+    if (!weatherDataSeries) {
+        return null;
+    }
+
     const chartData = weatherDataSeries.Series.map(entry => ({
         time: entry.Timestamp,
         AirTemp: parseFloat(entry.Weather.AirTemp),

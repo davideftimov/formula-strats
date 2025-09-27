@@ -1,12 +1,10 @@
 import React, { type ChangeEvent } from 'react';
-import type { SessionInfo, LapCount, TrackStatus, WeatherData, DriverInterval } from '~/types';
+import type { DriverInterval } from '~/types';
 import { Settings } from './settings';
+import { useStore } from '@tanstack/react-store';
+import { f1Store } from '~/store/f1-store';
 
 interface NavProps {
-    session: SessionInfo | null;
-    lapCount: LapCount | null;
-    weatherData: WeatherData | null;
-    trackStatus?: TrackStatus | null;
     selectedPenalty: number;
     handlePenaltyChange: (event: ChangeEvent<HTMLSelectElement>) => void;
     selectedDriver?: string | null;
@@ -14,7 +12,14 @@ interface NavProps {
     drivers: DriverInterval[];
 }
 
-export const Nav: React.FC<NavProps> = ({ session, lapCount, trackStatus, weatherData, selectedPenalty, handlePenaltyChange, selectedDriver, handleDriverChange, drivers }) => {
+export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, selectedDriver, handleDriverChange, drivers }) => {
+    const { session, lapCount, trackStatus, weatherData } = useStore(f1Store, (state) => ({
+        session: state.sessionInfo,
+        lapCount: state.lapCount,
+        trackStatus: state.trackStatus,
+        weatherData: state.weatherData,
+    }));
+
     if (!session) {
         return <div className="p-2 text-zinc-500 dark:text-zinc-400">No session data available.</div>;
     }

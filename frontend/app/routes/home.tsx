@@ -68,7 +68,14 @@ function parseTimeToSeconds(timeStr: string): number {
 }
 
 export default function Home() {
-  const { sessionInfo, driverData, lapCount, trackStatus, timingData, lapData, weatherData, raceControlMessages, weatherDataSeries, tyreStintSeries } = useStore(f1Store);
+  const { sessionInfo, driverData, lapCount, trackStatus, timingData, tyreStintSeries } = useStore(f1Store, (state) => ({
+    sessionInfo: state.sessionInfo,
+    driverData: state.driverData,
+    lapCount: state.lapCount,
+    trackStatus: state.trackStatus,
+    timingData: state.timingData,
+    tyreStintSeries: state.tyreStintSeries,
+  }));
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
   const { delay } = useSettings();
@@ -80,7 +87,7 @@ export default function Home() {
     delay,
   });
 
-  const loading = !sessionInfo || !driverData || !timingData;
+  const loading = !sessionInfo || !driverData;
 
   const mappedDrivers = useMemo(() => {
     if (!sessionInfo || !driverData || !timingData || !timingData.Lines) {
@@ -211,10 +218,6 @@ export default function Home() {
         <div className="lg:h-[4vh]">
           {sessionInfo && (
             <Nav
-              session={sessionInfo}
-              lapCount={lapCount}
-              weatherData={weatherData}
-              trackStatus={trackStatus}
               selectedPenalty={selectedPenalty}
               handlePenaltyChange={handlePenaltyChange}
               selectedDriver={selectedDriver}
@@ -234,11 +237,9 @@ export default function Home() {
                 />
               </div>
             )}
-            {raceControlMessages && raceControlMessages.Messages.length > 0 && (
-              <div className="h-[25vh] overflow-y-auto lg:basis-1/4 lg:h-auto border-x border-b border-zinc-200 dark:border-zinc-700">
-                <RaceControlMessages messages={raceControlMessages.Messages} />
-              </div>
-            )}
+            <div className="h-[25vh] overflow-y-auto lg:basis-1/4 lg:h-auto border-x border-b border-zinc-200 dark:border-zinc-700">
+              <RaceControlMessages />
+            </div>
           </div>
 
           {/* Right column - Timeline, and Charts */}
@@ -251,20 +252,14 @@ export default function Home() {
             )}
 
             {/* Charts */}
-            {(lapData.length > 0 || (weatherDataSeries && weatherDataSeries.Series.length > 0)) && (
-              <div className="lg:basis-3/4 lg:h-auto flex flex-col lg:flex-row">
-                {lapData.length > 0 && (
-                  <div className="h-[70vh] w-full lg:ml-2 lg:w-2/3 lg:h-auto">
-                    <LapChart laps={lapData} drivers={driverData} />
-                  </div>
-                )}
-                {weatherDataSeries && weatherDataSeries.Series.length > 0 && (
-                  <div className="h-[70vh] w-full lg:w-1/3 lg:h-auto">
-                    <WeatherCharts weatherDataSeries={weatherDataSeries} />
-                  </div>
-                )}
+            <div className="lg:basis-3/4 lg:h-auto flex flex-col lg:flex-row">
+              <div className="h-[70vh] w-full lg:ml-2 lg:w-2/3 lg:h-auto">
+                <LapChart />
               </div>
-            )}
+              <div className="h-[70vh] w-full lg:w-1/3 lg:h-auto">
+                <WeatherCharts />
+              </div>
+            </div>
           </div>
         </div>
       </div>

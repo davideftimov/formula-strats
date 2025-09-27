@@ -1,11 +1,10 @@
 import React from 'react';
-import type { RaceControlMessage } from '~/types';
+import { useStore } from '@tanstack/react-store';
+import { f1Store } from '~/store/f1-store';
 
-interface RaceControlMessagesProps {
-	messages: RaceControlMessage[];
-}
+export const RaceControlMessages: React.FC = () => {
+	const messages = useStore(f1Store, (state) => state.raceControlMessages?.Messages);
 
-export const RaceControlMessages: React.FC<RaceControlMessagesProps> = ({ messages }) => {
 	if (!messages || messages.length === 0) {
 		return <div className="p-2 text-zinc-500 dark:text-zinc-400">No race control messages.</div>;
 	}
