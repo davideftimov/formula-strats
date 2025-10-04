@@ -6,7 +6,7 @@ export const RaceControlMessages: React.FC = () => {
 	const messages = useStore(f1Store, (state) => state.raceControlMessages?.Messages);
 
 	if (!messages || messages.length === 0) {
-		return <div className="p-2 text-zinc-500 dark:text-zinc-400">No race control messages.</div>;
+		return null;
 	}
 
 	const reversedMessages = [...messages].reverse();

@@ -230,13 +230,11 @@ export default function Home() {
         <div className="lg:flex lg:h-[96vh]">
           {/* Left column - Driver Rankings and Race Control */}
           <div className="lg:w-1/5 flex flex-col">
-            {mappedDrivers.length > 0 && (
-              <div className="overflow-y-auto lg:basis-3/4 border-x border-t lg:border-t-0 border-b border-zinc-200 dark:border-zinc-700">
-                <Rankings
-                  drivers={mappedDrivers}
-                />
-              </div>
-            )}
+            <div className="overflow-y-auto lg:basis-3/4 border-x border-t lg:border-t-0 border-b border-zinc-200 dark:border-zinc-700">
+              <Rankings
+                drivers={mappedDrivers}
+              />
+            </div>
             <div className="h-[25vh] overflow-y-auto lg:basis-1/4 lg:h-auto border-x border-b border-zinc-200 dark:border-zinc-700">
               <RaceControlMessages />
             </div>
@@ -245,11 +243,9 @@ export default function Home() {
           {/* Right column - Timeline, and Charts */}
           <div className="lg:w-4/5 lg:flex lg:flex-col">
             {/* Driver timeline */}
-            {mappedDrivers.length > 0 && (
-              <div className="h-[25vh] px-6 pt-2 overflow-y-auto lg:basis-1/4 lg:h-auto">
-                <Timeline drivers={mappedDrivers} />
-              </div>
-            )}
+            <div className="h-[25vh] px-6 pt-2 overflow-y-auto lg:basis-1/4 lg:h-auto">
+              <Timeline drivers={mappedDrivers} />
+            </div>
 
             {/* Charts */}
             <div className="lg:basis-3/4 lg:h-auto flex flex-col lg:flex-row">

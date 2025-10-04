@@ -24,7 +24,7 @@ const getCompoundStyle = (compound: string): React.CSSProperties => {
 
 export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 	if (!drivers || drivers.length === 0) {
-		return <div className="p-2 text-zinc-500 dark:text-zinc-400">No driver data available.</div>;
+		return null
 	}
 
 	return (

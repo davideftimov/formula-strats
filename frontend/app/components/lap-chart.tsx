@@ -237,7 +237,7 @@ export const LapChart: React.FC = () => {
 	const isAllSelected = selectedDrivers.size === allDriverNumbers.length && allDriverNumbers.length > 0;
 
 	if (!processedData.size) {
-		return <div className="text-zinc-500 dark:text-zinc-400 italic">No lap data available</div>;
+		return null;
 	}
 
 	const CustomTooltip = ({ active, payload, label }: any) => {

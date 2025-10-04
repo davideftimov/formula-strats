@@ -6,6 +6,10 @@ interface TimelineProps {
 }
 
 export const Timeline: React.FC<TimelineProps> = ({ drivers }) => {
+	if (!drivers || drivers.length === 0) {
+		return null;
+	}
+
 	// Find the maximum gap to scale the visualization appropriately
 	const maxGap = drivers.length > 0
 		? Math.max(
