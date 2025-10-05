@@ -68,7 +68,7 @@ export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, 
                     >
                         <option value="">Pit driver</option>
                         {drivers
-                            .filter(driver => driver.gapInSeconds !== -1 && !driver.name.includes('(Pit)'))
+                            .filter(driver => driver.gapInSeconds !== Infinity && !driver.name.includes('(Pit)'))
                             .map((driver, index) => (
                                 <option key={index} value={driver.name}>
                                     {driver.name}
