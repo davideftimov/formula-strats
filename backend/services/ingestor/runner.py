@@ -3,7 +3,7 @@ import subprocess
 import sys
 import time
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.date import DateTrigger
@@ -117,11 +117,13 @@ def update_schedules():
                 else:
                     event_time_utc = event[0].astimezone(ZoneInfo("UTC"))
 
-                logging.info(f"Scheduling job {job_id} for: {event_time_utc}")
+                run_time = event_time_utc - timedelta(minutes=10)
+
+                logging.info(f"Scheduling job {job_id} for: {run_time} (event starts at {event_time_utc})")
                 scheduler.add_job(
                     run_websocket_program,
                     trigger='date',
-                    run_date=event_time_utc,
+                    run_date=run_time,
                     id=job_id,
                     replace_existing=True # In case of race condition or ID collision
                 )
