@@ -39,7 +39,7 @@ const circuitAvgPitTimeLost = [
   { circuit_short_name: "Zandvoort", green_flag: 21.5, sc_vsc: 15.5 },
   { circuit_short_name: "Monza", green_flag: 23, sc_vsc: 15 },
   { circuit_short_name: "Baku", green_flag: 20.5, sc_vsc: 11 },
-  { circuit_short_name: "Singapore", green_flag: 28.5, sc_vsc: 15 },
+  { circuit_short_name: "Singapore", green_flag: 22, sc_vsc: 12 },
   { circuit_short_name: "Austin", green_flag: 20, sc_vsc: 14 },
   { circuit_short_name: "Mexico City", green_flag: 22, sc_vsc: 12 },
   { circuit_short_name: "Interlagos", green_flag: 21, sc_vsc: 11 },
