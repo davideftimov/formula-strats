@@ -205,8 +205,13 @@ export default function Home() {
     return (
       <div className="w-full p-5 my-5 font-sans text-zinc-700 dark:text-zinc-300 flex flex-col items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
-        <div className="text-xl">
-          Warming up the engines...
+        <div className="text-xl text-center">
+          <p>Warming up the engines...</p>
+          {delay > 0 && (
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+              The loading will take longer due to the configured delay of {delay} seconds.
+            </p>
+          )}
         </div>
       </div>
     );
