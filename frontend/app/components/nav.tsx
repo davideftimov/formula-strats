@@ -26,7 +26,7 @@ export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, 
 
     return (
         <div className="lg:flex bg-zinc-200 dark:bg-black text-zinc-800 dark:text-zinc-200 h-full">
-            <div className="lg:w-1/5 flex flex-row justify-between items-center p-2 lg:px-2 lg:border border-zinc-300 dark:border-zinc-700">
+            <div className="lg:w-[22%] flex flex-row justify-between items-center p-2 lg:px-2 lg:border border-zinc-300 dark:border-zinc-700">
                 <p className='text-sm lg:text-base font-bold'>
                     {session?.Meeting.Location} - {session?.Name}
                 </p>
@@ -41,7 +41,7 @@ export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, 
                     {lapCount ? `Lap ${lapCount.CurrentLap} / ${lapCount.TotalLaps}` : ""}
                 </p>
             </div>
-            <div className="lg:w-4/5 flex flex-wrap items-center justify-center lg:justify-around p-2 lg:p-0">
+            <div className="lg:w-[78%] flex flex-wrap items-center justify-center lg:justify-around p-2 lg:p-0">
                 <div className="hidden lg:flex flex-grow" />
                 {weatherData && (
                     <div className="w-full lg:w-auto flex flex-wrap justify-center text-sm my-1 lg:my-0 lg:mr-10">

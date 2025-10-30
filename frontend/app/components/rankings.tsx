@@ -41,8 +41,8 @@ export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 										key={driver.racingNumber}
 										className={`${baseRowClass} ${textStyleClass}`}
 									>
-										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 w-12">{index + 1}</td>
-										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700">
+										<td className="px-2 border-zinc-200 dark:border-zinc-700">{index + 1}</td>
+										<td className="px-2 border-zinc-200 dark:border-zinc-700">
 											<div className="flex items-center">
 												<div
 													className="w-3 h-3 rounded-full mr-1"
@@ -51,7 +51,7 @@ export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 												<span>{driver.name}</span>
 											</div>
 										</td>
-										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700">
+										<td className="border-zinc-200 dark:border-zinc-700">
 											<div className="flex items-center text-xs space-x-1.5">
 												{driver.stints?.map((stint, i) => (
 													<span key={i} style={getCompoundStyle(stint.Compound)} className="font-semibold">
@@ -61,8 +61,11 @@ export const Rankings: React.FC<RankingsProps> = ({ drivers }) => {
 												))}
 											</div>
 										</td>
-										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 text-right w-28">
+										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 text-left">
 											{driver.gapDisplay}
+										</td>
+										<td className="py-1 px-2 border-zinc-200 dark:border-zinc-700 text-left">
+											{driver.intervalToPositionAhead}
 										</td>
 									</tr>
 								);

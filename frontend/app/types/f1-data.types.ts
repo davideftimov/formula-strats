@@ -23,6 +23,7 @@ export interface DriverInterval {
 	name: string;
 	color: string;
 	gapDisplay: string;
+	intervalToPositionAhead: string;
 	gapInSeconds: number;
 	isSpecialStatus: boolean;
 	stints?: TyreStint[];

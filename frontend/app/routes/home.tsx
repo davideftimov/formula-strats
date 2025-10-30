@@ -153,6 +153,7 @@ export default function Home() {
         name: name,
         color: `#${driverDetails.TeamColour}`,
         gapDisplay: gapDisplay,
+        intervalToPositionAhead: driverTimingInfo.IntervalToPositionAhead?.Value || '',
         gapInSeconds: gapInSeconds,
         isSpecialStatus: isSpecialStatus,
         stints: driverStints,
@@ -175,16 +176,26 @@ export default function Home() {
         ) + selectedPenalty;
         const gapInSecondsAfterPit = driverToPit.gapInSeconds + pitTimeLost;
 
-        const simulatedDriver = {
+        const simulatedDriver: DriverInterval = {
           ...driverToPit,
           name: `${driverToPit.name} (Pit)`,
           color: driverToPit.color + '80',
           gapInSeconds: gapInSecondsAfterPit,
           gapDisplay: `+${gapInSecondsAfterPit.toFixed(1)}s`,
           isSpecialStatus: true,
+          intervalToPositionAhead: '',
         };
         currentDrivers.push(simulatedDriver);
         currentDrivers.sort((a, b) => a.gapInSeconds - b.gapInSeconds);
+
+        const simulatedDriverIndex = currentDrivers.findIndex(d => d.name === simulatedDriver.name);
+        if (simulatedDriverIndex > 0) {
+          const driverAhead = currentDrivers[simulatedDriverIndex - 1];
+          const interval = currentDrivers[simulatedDriverIndex].gapInSeconds - driverAhead.gapInSeconds;
+          if (interval >= 0 && isFinite(interval)) {
+            currentDrivers[simulatedDriverIndex].intervalToPositionAhead = `+${interval.toFixed(1)}`;
+          }
+        }
       }
     }
 
@@ -234,7 +245,7 @@ export default function Home() {
         {/* Two-column layout container */}
         <div className="lg:flex lg:h-[96vh]">
           {/* Left column - Driver Rankings and Race Control */}
-          <div className="lg:w-1/5 flex flex-col">
+          <div className="lg:w-[22%] flex flex-col">
             <div className="overflow-y-auto lg:basis-3/4 border-x border-t lg:border-t-0 border-b border-zinc-200 dark:border-zinc-700">
               <Rankings
                 drivers={mappedDrivers}
@@ -246,7 +257,7 @@ export default function Home() {
           </div>
 
           {/* Right column - Timeline, and Charts */}
-          <div className="lg:w-4/5 lg:flex lg:flex-col">
+          <div className="lg:w-[78%] lg:flex lg:flex-col">
             {/* Driver timeline */}
             <div className="h-[25vh] px-6 pt-2 overflow-y-auto lg:basis-1/4 lg:h-auto">
               <Timeline drivers={mappedDrivers} />
