@@ -1,7 +1,7 @@
 import type { Route } from "./+types/home";
 import { Timeline } from "~/components/timeline";
 import { Footer } from "~/components/footer";
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { LapChart } from '~/components/lap-chart';
 import { Rankings } from '~/components/rankings';
 import type { DriverInterval } from '~/types';
@@ -21,7 +21,7 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-const circuitAvgPitTimeLost = [
+const circuitAvgPitTimeLostData = [
   { circuit_short_name: "Melbourne", green_flag: 19.3, sc_vsc: 12.8 },
   { circuit_short_name: "Shanghai", green_flag: 23, sc_vsc: 15 },
   { circuit_short_name: "Suzuka", green_flag: 22.5, sc_vsc: 10 },
@@ -78,9 +78,22 @@ export default function Home() {
   }));
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
-  const { delay } = useSettings();
+  const { delay, circuitAvgPitTimeLost, setCircuitAvgPitTimeLost } = useSettings();
 
   const sseUrl = import.meta.env.VITE_SSE_URL;
+
+  useEffect(() => {
+    if (sessionInfo) {
+      const circuitName = sessionInfo.Meeting.Circuit.ShortName || '';
+      const pitTimeData = circuitAvgPitTimeLostData.find(c => c.circuit_short_name === circuitName);
+      if (pitTimeData) {
+        setCircuitAvgPitTimeLost({ green_flag: pitTimeData.green_flag, sc_vsc: pitTimeData.sc_vsc });
+      } else {
+        // fallback to default
+        setCircuitAvgPitTimeLost({ green_flag: 20, sc_vsc: 12 });
+      }
+    }
+  }, [sessionInfo, setCircuitAvgPitTimeLost]);
 
   const { error, isConnected } = useSSE({
     url: sseUrl,
@@ -166,13 +179,9 @@ export default function Home() {
     if (selectedDriver) {
       const driverToPit = currentDrivers.find(d => d.name === selectedDriver);
       if (driverToPit) {
-        const circuitName = sessionInfo.Meeting.Circuit.ShortName || '';
-        const pitTimeLostData = circuitAvgPitTimeLost.find(c => c.circuit_short_name === circuitName);
-        const pitTimeLost = (pitTimeLostData
-          ? (trackStatus?.Status === "6" || trackStatus?.Status === "4"
-            ? pitTimeLostData.sc_vsc
-            : pitTimeLostData.green_flag)
-          : 20
+        const pitTimeLost = (trackStatus?.Status === "6" || trackStatus?.Status === "4"
+          ? circuitAvgPitTimeLost.sc_vsc
+          : circuitAvgPitTimeLost.green_flag
         ) + selectedPenalty;
         const gapInSecondsAfterPit = driverToPit.gapInSeconds + pitTimeLost;
 
@@ -201,7 +210,7 @@ export default function Home() {
 
     logger.log("Final computed drivers in useMemo", currentDrivers);
     return currentDrivers;
-  }, [sessionInfo, timingData, driverData, selectedDriver, selectedPenalty, tyreStintSeries]);
+  }, [sessionInfo, timingData, driverData, selectedDriver, selectedPenalty, tyreStintSeries, circuitAvgPitTimeLost, trackStatus]);
 
 
   function handleDriverChange(event: React.ChangeEvent<HTMLSelectElement>) {

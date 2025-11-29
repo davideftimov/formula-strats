@@ -5,6 +5,8 @@ interface SettingsContextType {
 	setDelay: (delay: number) => void;
 	theme: "light" | "dark";
 	toggleTheme: () => void;
+	circuitAvgPitTimeLost: { green_flag: number; sc_vsc: number };
+	setCircuitAvgPitTimeLost: (values: { green_flag: number; sc_vsc: number }) => void;
 }
 
 export const SettingsContext = createContext<SettingsContextType>({
@@ -12,6 +14,8 @@ export const SettingsContext = createContext<SettingsContextType>({
 	setDelay: () => { },
 	theme: "light",
 	toggleTheme: () => { },
+	circuitAvgPitTimeLost: { green_flag: 0, sc_vsc: 0 },
+	setCircuitAvgPitTimeLost: () => { },
 });
 
 export const useSettings = () => useContext(SettingsContext);
@@ -19,6 +23,7 @@ export const useSettings = () => useContext(SettingsContext);
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [delay, setDelay] = useState<number>(0);
 	const [theme, setTheme] = useState<"light" | "dark">("light");
+	const [circuitAvgPitTimeLost, setCircuitAvgPitTimeLost] = useState<{ green_flag: number; sc_vsc: number }>({ green_flag: 0, sc_vsc: 0 });
 
 	useEffect(() => {
 		const savedDelay = localStorage.getItem("delay");
@@ -53,7 +58,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 	};
 
 	return (
-		<SettingsContext.Provider value={{ delay, setDelay, theme, toggleTheme }}>
+		<SettingsContext.Provider value={{ delay, setDelay, theme, toggleTheme, circuitAvgPitTimeLost, setCircuitAvgPitTimeLost }}>
 			{children}
 		</SettingsContext.Provider>
 	);
@@ -61,15 +66,21 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export const Settings: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { delay, setDelay, theme, toggleTheme } = useSettings();
+	const { delay, setDelay, theme, toggleTheme, circuitAvgPitTimeLost, setCircuitAvgPitTimeLost } = useSettings();
 	const [inputValue, setInputValue] = useState<string>(delay.toString());
+	const [greenFlagTime, setGreenFlagTime] = useState(circuitAvgPitTimeLost.green_flag.toString());
+	const [scVscTime, setScVscTime] = useState(circuitAvgPitTimeLost.sc_vsc.toString());
 
-	// Sync context delay to local input value when delay changes externally
+	useEffect(() => {
+		setGreenFlagTime(circuitAvgPitTimeLost.green_flag.toString());
+		setScVscTime(circuitAvgPitTimeLost.sc_vsc.toString());
+	}, [circuitAvgPitTimeLost]);
+
+
 	useEffect(() => {
 		setInputValue(delay.toString());
 	}, [delay]);
 
-	// Close the settings when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			const target = event.target as HTMLElement;
@@ -83,6 +94,13 @@ export const Settings: React.FC = () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
 	}, []);
+
+	useEffect(() => {
+		if (!isOpen && inputValue === '') {
+			setDelay(0);
+			setInputValue('0');
+		}
+	}, [isOpen, inputValue, setDelay]);
 
 	return (
 		<div className="relative">
@@ -115,34 +133,15 @@ export const Settings: React.FC = () => {
 						</label>
 						<button
 							onClick={toggleTheme}
-							className="flex items-center justify-between w-full p-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600"
+							className="flex items-center justify-between w-full p-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600 cursor-pointer"
 						>
 							<span className="text-sm text-zinc-700 dark:text-zinc-300">
 								{theme === "light" ? "Light Mode" : "Dark Mode"}
 							</span>
-							{theme === "light" ? (
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									className="h-5 w-5 text-zinc-700"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-								>
-									<path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 4.343a.75.75 0 011.06 1.06l-1.06 1.061a.75.75 0 01-1.06-1.06l1.06-1.06zM4.343 15.657a.75.75 0 011.06 1.06l-1.06 1.06a.75.75 0 11-1.06-1.06l1.06-1.061zM18 10a.75.75 0 01.75.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM15.657 15.657a.75.75 0 01-1.06 1.06l-1.061-1.06a.75.75 0 111.06-1.06l1.06 1.06zM4.343 4.343a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06z" />
-								</svg>
-							) : (
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									className="h-5 w-5 text-zinc-300"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-								>
-									<path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-								</svg>
-							)}
 						</button>
 					</div>
 
-					<div>
+					<div className="mb-3">
 						<label htmlFor="delayInput" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
 							Delay (seconds)
 						</label>
@@ -155,25 +154,82 @@ export const Settings: React.FC = () => {
 							value={inputValue}
 							onChange={(e) => {
 								const value = e.target.value;
-								// Allow only empty string or non-negative integers
 								if (/^[0-9]*$/.test(value)) {
 									setInputValue(value);
-									const numValue = value === '' ? 0 : parseInt(value, 10);
-									// Update context state (debouncing could be added here if needed)
-									if (!isNaN(numValue) && numValue >= 0) {
-										setDelay(numValue);
+									if (value !== '') {
+										const numValue = parseInt(value, 10);
+										if (!isNaN(numValue) && numValue >= 0) {
+											setDelay(numValue);
+										}
 									}
 								}
 							}}
 							onBlur={() => {
 								if (inputValue === '') {
 									setInputValue('0');
+									setDelay(0);
 								}
 							}}
 						/>
 						<p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
 							Add delay to simulate race broadcast delay
 						</p>
+					</div>
+					<div className="mb-3">
+						<label htmlFor="greenFlagPitTime" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+							Green flag pit time loss (s)
+						</label>
+						<input
+							id="greenFlagPitTime"
+							type="text"
+							inputMode="numeric"
+							pattern="[0-9]*\.?[0-9]*"
+							className="w-full border border-zinc-300 dark:border-zinc-600 rounded-md p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
+							value={greenFlagTime}
+							onChange={(e) => {
+								const value = e.target.value;
+								if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+									setGreenFlagTime(value);
+									const numValue = parseFloat(value);
+									if (!isNaN(numValue)) {
+										setCircuitAvgPitTimeLost({ ...circuitAvgPitTimeLost, green_flag: numValue });
+									}
+								}
+							}}
+							onBlur={() => {
+								if (greenFlagTime === '') {
+									setGreenFlagTime(circuitAvgPitTimeLost.green_flag.toString());
+								}
+							}}
+						/>
+					</div>
+					<div>
+						<label htmlFor="scVscPitTime" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+							SC/VSC pit time loss (s)
+						</label>
+						<input
+							id="scVscPitTime"
+							type="text"
+							inputMode="numeric"
+							pattern="[0-9]*\.?[0-9]*"
+							className="w-full border border-zinc-300 dark:border-zinc-600 rounded-md p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
+							value={scVscTime}
+							onChange={(e) => {
+								const value = e.target.value;
+								if (/^[0-9]*\.?[0-9]*$/.test(value)) {
+									setScVscTime(value);
+									const numValue = parseFloat(value);
+									if (!isNaN(numValue)) {
+										setCircuitAvgPitTimeLost({ ...circuitAvgPitTimeLost, sc_vsc: numValue });
+									}
+								}
+							}}
+							onBlur={() => {
+								if (scVscTime === '') {
+									setScVscTime(circuitAvgPitTimeLost.sc_vsc.toString());
+								}
+							}}
+						/>
 					</div>
 				</div>
 			)}
