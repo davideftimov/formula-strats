@@ -1,85 +1,47 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
-
-interface SettingsContextType {
-	delay: number;
-	setDelay: (delay: number) => void;
-	theme: "light" | "dark";
-	toggleTheme: () => void;
-	circuitAvgPitTimeLost: { green_flag: number; sc_vsc: number };
-	setCircuitAvgPitTimeLost: (values: { green_flag: number; sc_vsc: number }) => void;
-}
-
-export const SettingsContext = createContext<SettingsContextType>({
-	delay: 0,
-	setDelay: () => { },
-	theme: "light",
-	toggleTheme: () => { },
-	circuitAvgPitTimeLost: { green_flag: 0, sc_vsc: 0 },
-	setCircuitAvgPitTimeLost: () => { },
-});
-
-export const useSettings = () => useContext(SettingsContext);
-
-export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const [delay, setDelay] = useState<number>(0);
-	const [theme, setTheme] = useState<"light" | "dark">("light");
-	const [circuitAvgPitTimeLost, setCircuitAvgPitTimeLost] = useState<{ green_flag: number; sc_vsc: number }>({ green_flag: 0, sc_vsc: 0 });
-
-	useEffect(() => {
-		const savedDelay = localStorage.getItem("delay");
-		if (savedDelay) {
-			setDelay(Number(savedDelay));
-		}
-
-		const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-		const prefersDark = window.matchMedia(
-			"(prefers-color-scheme: dark)"
-		).matches;
-		const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
-		setTheme(initialTheme);
-	}, []);
-
-	useEffect(() => {
-		localStorage.setItem("delay", delay.toString());
-	}, [delay]);
-
-	useEffect(() => {
-		if (theme === "dark") {
-			document.documentElement.classList.add("dark");
-			localStorage.setItem("theme", "dark");
-		} else {
-			document.documentElement.classList.remove("dark");
-			localStorage.setItem("theme", "light");
-		}
-	}, [theme]);
-
-	const toggleTheme = () => {
-		setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
-	};
-
-	return (
-		<SettingsContext.Provider value={{ delay, setDelay, theme, toggleTheme, circuitAvgPitTimeLost, setCircuitAvgPitTimeLost }}>
-			{children}
-		</SettingsContext.Provider>
-	);
-};
+import React, { useState, useEffect } from "react";
+import { NumberInput } from "./number-input";
+import { useStore } from '@tanstack/react-store';
+import { f1Store } from '~/store/f1-store';
+import { useSettings } from "~/context/settings-context";
+import { circuitAvgPitTimeLostData } from "~/data/circuit-data";
 
 export const Settings: React.FC = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { delay, setDelay, theme, toggleTheme, circuitAvgPitTimeLost, setCircuitAvgPitTimeLost } = useSettings();
-	const [inputValue, setInputValue] = useState<string>(delay.toString());
-	const [greenFlagTime, setGreenFlagTime] = useState(circuitAvgPitTimeLost.green_flag.toString());
-	const [scVscTime, setScVscTime] = useState(circuitAvgPitTimeLost.sc_vsc.toString());
+	const [inputValues, setInputValues] = useState({
+		delay: delay.toString(),
+		greenFlag: circuitAvgPitTimeLost.green_flag.toString(),
+		scVsc: circuitAvgPitTimeLost.sc_vsc.toString(),
+	});
+
+	const { session } = useStore(f1Store, (state) => ({
+		session: state.sessionInfo,
+	}));
 
 	useEffect(() => {
-		setGreenFlagTime(circuitAvgPitTimeLost.green_flag.toString());
-		setScVscTime(circuitAvgPitTimeLost.sc_vsc.toString());
-	}, [circuitAvgPitTimeLost]);
-
-
-	useEffect(() => {
-		setInputValue(delay.toString());
-	}, [delay]);
+		if (session) {
+			const circuitName = session.Meeting.Circuit.ShortName || '';
+			const pitTimeData = circuitAvgPitTimeLostData.find(c => c.circuit_short_name === circuitName);
+			if (pitTimeData) {
+				const newPitTimes = { green_flag: pitTimeData.green_flag, sc_vsc: pitTimeData.sc_vsc };
+				setCircuitAvgPitTimeLost(newPitTimes);
+				setInputValues(prev => ({
+					...prev,
+					greenFlag: newPitTimes.green_flag.toString(),
+					scVsc: newPitTimes.sc_vsc.toString()
+				}));
+			} else {
+				// fallback to default
+				const defaultPitTimes = { green_flag: 20, sc_vsc: 12 };
+				setCircuitAvgPitTimeLost(defaultPitTimes);
+				setInputValues(prev => ({
+					...prev,
+					greenFlag: defaultPitTimes.green_flag.toString(),
+					scVsc: defaultPitTimes.sc_vsc.toString()
+				}));
+			}
+		}
+	}, [session, setCircuitAvgPitTimeLost]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -96,11 +58,43 @@ export const Settings: React.FC = () => {
 	}, []);
 
 	useEffect(() => {
-		if (!isOpen && inputValue === '') {
-			setDelay(0);
-			setInputValue('0');
+		if (!isOpen) {
+			setInputValues({
+				delay: delay.toString(),
+				greenFlag: circuitAvgPitTimeLost.green_flag.toString(),
+				scVsc: circuitAvgPitTimeLost.sc_vsc.toString(),
+			});
 		}
-	}, [isOpen, inputValue, setDelay]);
+	}, [isOpen, delay, circuitAvgPitTimeLost]);
+
+	const handleNumericChange = (field: 'delay' | 'greenFlag' | 'scVsc', isFloat: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
+		const { value } = e.target;
+		const regex = isFloat ? /^[0-9]*\.?[0-9]*$/ : /^[0-9]*$/;
+
+		if (regex.test(value)) {
+			setInputValues(prev => ({ ...prev, [field]: value }));
+			const numValue = isFloat ? parseFloat(value) : parseInt(value, 10);
+			const valOrDefault = isNaN(numValue) ? 0 : numValue;
+
+			if (field === 'delay') {
+				setDelay(valOrDefault);
+			} else if (field === 'greenFlag') {
+				setCircuitAvgPitTimeLost(prev => ({ ...prev, green_flag: valOrDefault }));
+			} else {
+				setCircuitAvgPitTimeLost(prev => ({ ...prev, sc_vsc: valOrDefault }));
+			}
+		}
+	};
+
+	const handleBlur = (field: 'delay' | 'greenFlag' | 'scVsc') => () => {
+		if (field === 'delay') {
+			setInputValues(prev => ({ ...prev, delay: delay.toString() }));
+		} else if (field === 'greenFlag') {
+			setInputValues(prev => ({ ...prev, greenFlag: circuitAvgPitTimeLost.green_flag.toString() }));
+		} else {
+			setInputValues(prev => ({ ...prev, scVsc: circuitAvgPitTimeLost.sc_vsc.toString() }));
+		}
+	};
 
 	return (
 		<div className="relative">
@@ -109,126 +103,53 @@ export const Settings: React.FC = () => {
 				className="settings-button text-zinc-800 dark:text-zinc-200 hover:text-orange-500 transition-colors duration-200 cursor-pointer p-1"
 				aria-label="Settings"
 			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					className="h-5 w-5"
-					viewBox="0 0 20 20"
-					fill="currentColor"
-				>
-					<path
-						fillRule="evenodd"
-						d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
-						clipRule="evenodd"
-					/>
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="size-5">
+					<path fillRule="evenodd" d="M8.34 1.804A1 1 0 0 1 9.32 1h1.36a1 1 0 0 1 .98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 0 1 1.262.125l.962.962a1 1 0 0 1 .125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.294a1 1 0 0 1 .804.98v1.361a1 1 0 0 1-.804.98l-1.473.295a6.95 6.95 0 0 1-.587 1.416l.834 1.25a1 1 0 0 1-.125 1.262l-.962.962a1 1 0 0 1-1.262.125l-1.25-.834a6.953 6.953 0 0 1-1.416.587l-.294 1.473a1 1 0 0 1-.98.804H9.32a1 1 0 0 1-.98-.804l-.295-1.473a6.957 6.957 0 0 1-1.416-.587l-1.25.834a1 1 0 0 1-1.262-.125l-.962-.962a1 1 0 0 1-.125-1.262l.834-1.25a6.957 6.957 0 0 1-.587-1.416l-1.473-.294A1 1 0 0 1 1 10.68V9.32a1 1 0 0 1 .804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 0 1 .125-1.262l.962-.962A1 1 0 0 1 5.38 3.03l1.25.834a6.957 6.957 0 0 1 1.416-.587l.294-1.473ZM13 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" clipRule="evenodd" />
 				</svg>
 			</button>
 
 			{isOpen && (
-				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-zinc-900 rounded-md shadow-lg p-4 z-50 border border-zinc-200 dark:border-zinc-700">
-					<h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Settings</h3>
+				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-zinc-900 shadow-lg p-4 z-50 border border-zinc-200 dark:border-zinc-700">
+					<h3 className="font-semibold text-zinc-700 dark:text-zinc-300 mb-6">Settings</h3>
+					<div className="space-y-3">
+						<div className="">
+							<label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+								Theme
+							</label>
+							<button
+								onClick={toggleTheme}
+								className="flex items-center justify-between w-full p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600 cursor-pointer"
+							>
+								<span className="text-sm text-zinc-700 dark:text-zinc-300">
+									{theme === "light" ? "Light Mode" : "Dark Mode"}
+								</span>
+							</button>
+						</div>
 
-					<div className="mb-3">
-						<label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-							Theme
-						</label>
-						<button
-							onClick={toggleTheme}
-							className="flex items-center justify-between w-full p-2 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600 cursor-pointer"
-						>
-							<span className="text-sm text-zinc-700 dark:text-zinc-300">
-								{theme === "light" ? "Light Mode" : "Dark Mode"}
-							</span>
-						</button>
-					</div>
-
-					<div className="mb-3">
-						<label htmlFor="delayInput" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-							Delay (seconds)
-						</label>
-						<input
+						<NumberInput
 							id="delayInput"
-							type="text"
-							inputMode="numeric"
+							label="Delay (seconds)"
 							pattern="[0-9]*"
-							className="w-full border border-zinc-300 dark:border-zinc-600 rounded-md p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
-							value={inputValue}
-							onChange={(e) => {
-								const value = e.target.value;
-								if (/^[0-9]*$/.test(value)) {
-									setInputValue(value);
-									if (value !== '') {
-										const numValue = parseInt(value, 10);
-										if (!isNaN(numValue) && numValue >= 0) {
-											setDelay(numValue);
-										}
-									}
-								}
-							}}
-							onBlur={() => {
-								if (inputValue === '') {
-									setInputValue('0');
-									setDelay(0);
-								}
-							}}
+							value={inputValues.delay}
+							onChange={handleNumericChange('delay', false)}
+							onBlur={handleBlur('delay')}
+							description="Add delay to simulate race broadcast delay"
 						/>
-						<p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-							Add delay to simulate race broadcast delay
-						</p>
-					</div>
-					<div className="mb-3">
-						<label htmlFor="greenFlagPitTime" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-							Green flag pit time loss (s)
-						</label>
-						<input
+						<NumberInput
 							id="greenFlagPitTime"
-							type="text"
-							inputMode="numeric"
+							label="Green flag pit time loss (s)"
 							pattern="[0-9]*\.?[0-9]*"
-							className="w-full border border-zinc-300 dark:border-zinc-600 rounded-md p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
-							value={greenFlagTime}
-							onChange={(e) => {
-								const value = e.target.value;
-								if (/^[0-9]*\.?[0-9]*$/.test(value)) {
-									setGreenFlagTime(value);
-									const numValue = parseFloat(value);
-									if (!isNaN(numValue)) {
-										setCircuitAvgPitTimeLost({ ...circuitAvgPitTimeLost, green_flag: numValue });
-									}
-								}
-							}}
-							onBlur={() => {
-								if (greenFlagTime === '') {
-									setGreenFlagTime(circuitAvgPitTimeLost.green_flag.toString());
-								}
-							}}
+							value={inputValues.greenFlag}
+							onChange={handleNumericChange('greenFlag', true)}
+							onBlur={handleBlur('greenFlag')}
 						/>
-					</div>
-					<div>
-						<label htmlFor="scVscPitTime" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-							SC/VSC pit time loss (s)
-						</label>
-						<input
+						<NumberInput
 							id="scVscPitTime"
-							type="text"
-							inputMode="numeric"
+							label="SC/VSC pit time loss (s)"
 							pattern="[0-9]*\.?[0-9]*"
-							className="w-full border border-zinc-300 dark:border-zinc-600 rounded-md p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
-							value={scVscTime}
-							onChange={(e) => {
-								const value = e.target.value;
-								if (/^[0-9]*\.?[0-9]*$/.test(value)) {
-									setScVscTime(value);
-									const numValue = parseFloat(value);
-									if (!isNaN(numValue)) {
-										setCircuitAvgPitTimeLost({ ...circuitAvgPitTimeLost, sc_vsc: numValue });
-									}
-								}
-							}}
-							onBlur={() => {
-								if (scVscTime === '') {
-									setScVscTime(circuitAvgPitTimeLost.sc_vsc.toString());
-								}
-							}}
+							value={inputValues.scVsc}
+							onChange={handleNumericChange('scVsc', true)}
+							onBlur={handleBlur('scVsc')}
 						/>
 					</div>
 				</div>

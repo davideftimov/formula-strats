@@ -9,7 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { SettingsProvider, useSettings } from "~/components/settings";
+import { SettingsProvider, useSettings } from "~/context/settings-context";
 
 
 export const links: Route.LinksFunction = () => [

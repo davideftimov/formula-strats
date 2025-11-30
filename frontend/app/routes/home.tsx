@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { LapChart } from '~/components/lap-chart';
 import { Rankings } from '~/components/rankings';
 import type { DriverInterval } from '~/types';
-import { useSettings } from '~/components/settings';
+import { useSettings } from "~/context/settings-context";
 import { logger } from '../utils/logger';
 import useSSE from '~/hooks/useSSE';
 import { Nav } from '~/components/nav';
@@ -20,33 +20,6 @@ export function meta({ }: Route.MetaArgs) {
     { name: "description", content: "The favorite app of all formula armchair strategists." },
   ];
 }
-
-const circuitAvgPitTimeLostData = [
-  { circuit_short_name: "Melbourne", green_flag: 19.3, sc_vsc: 12.8 },
-  { circuit_short_name: "Shanghai", green_flag: 23, sc_vsc: 15 },
-  { circuit_short_name: "Suzuka", green_flag: 22.5, sc_vsc: 10 },
-  { circuit_short_name: "Sakhir", green_flag: 23.2, sc_vsc: 13 },
-  { circuit_short_name: "Jeddah", green_flag: 20, sc_vsc: 11 },
-  { circuit_short_name: "Miami", green_flag: 17, sc_vsc: 9 },
-  { circuit_short_name: "Imola", green_flag: 26.5, sc_vsc: 16.5 },
-  { circuit_short_name: "Monte Carlo", green_flag: 19.2, sc_vsc: 12 },
-  { circuit_short_name: "Catalunya", green_flag: 22.5, sc_vsc: 12.5 },
-  { circuit_short_name: "Montreal", green_flag: 18.5, sc_vsc: 9.5 },
-  { circuit_short_name: "Spielberg", green_flag: 20, sc_vsc: 9 },
-  { circuit_short_name: "Silverstone", green_flag: 20, sc_vsc: 9 },
-  { circuit_short_name: "Spa-Francorchamps", green_flag: 18.5, sc_vsc: 11 },
-  { circuit_short_name: "Hungaroring", green_flag: 20.5, sc_vsc: 11.5 },
-  { circuit_short_name: "Zandvoort", green_flag: 21.5, sc_vsc: 15.5 },
-  { circuit_short_name: "Monza", green_flag: 23, sc_vsc: 15 },
-  { circuit_short_name: "Baku", green_flag: 20.5, sc_vsc: 11 },
-  { circuit_short_name: "Singapore", green_flag: 22, sc_vsc: 12 },
-  { circuit_short_name: "Austin", green_flag: 20, sc_vsc: 14 },
-  { circuit_short_name: "Mexico City", green_flag: 22, sc_vsc: 12 },
-  { circuit_short_name: "Interlagos", green_flag: 21, sc_vsc: 11 },
-  { circuit_short_name: "Las Vegas", green_flag: 21, sc_vsc: 13.5 },
-  { circuit_short_name: "Lusail", green_flag: 26.5, sc_vsc: 15.5 },
-  { circuit_short_name: "Yas Marina Circuit", green_flag: 22, sc_vsc: 15 }
-];
 
 function parseTimeToSeconds(timeStr: string): number {
   // Remove leading '+' or '-' if present
@@ -78,22 +51,9 @@ export default function Home() {
   }));
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<number>(0);
-  const { delay, circuitAvgPitTimeLost, setCircuitAvgPitTimeLost } = useSettings();
+  const { delay, circuitAvgPitTimeLost } = useSettings();
 
   const sseUrl = import.meta.env.VITE_SSE_URL;
-
-  useEffect(() => {
-    if (sessionInfo) {
-      const circuitName = sessionInfo.Meeting.Circuit.ShortName || '';
-      const pitTimeData = circuitAvgPitTimeLostData.find(c => c.circuit_short_name === circuitName);
-      if (pitTimeData) {
-        setCircuitAvgPitTimeLost({ green_flag: pitTimeData.green_flag, sc_vsc: pitTimeData.sc_vsc });
-      } else {
-        // fallback to default
-        setCircuitAvgPitTimeLost({ green_flag: 20, sc_vsc: 12 });
-      }
-    }
-  }, [sessionInfo, setCircuitAvgPitTimeLost]);
 
   const { error, isConnected } = useSSE({
     url: sseUrl,
@@ -187,6 +147,7 @@ export default function Home() {
 
         const simulatedDriver: DriverInterval = {
           ...driverToPit,
+          racingNumber: `${driverToPit.racingNumber}-pit`,
           name: `${driverToPit.name} (Pit)`,
           color: driverToPit.color + '80',
           gapInSeconds: gapInSecondsAfterPit,
