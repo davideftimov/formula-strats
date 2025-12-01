@@ -109,32 +109,26 @@ export const Settings: React.FC = () => {
 			</button>
 
 			{isOpen && (
-				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-zinc-900 shadow-lg p-4 z-50 border border-zinc-200 dark:border-zinc-700">
+				<div className="settings-container absolute right-0 mt-2 mr-2 w-64 bg-white dark:bg-black shadow-lg p-4 z-50 border border-zinc-200 dark:border-zinc-700">
 					<h3 className="font-semibold text-zinc-700 dark:text-zinc-300 mb-6">Settings</h3>
-					<div className="space-y-3">
+					<div className="space-y-4">
 						<div className="">
 							<label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
 								Theme
 							</label>
 							<button
 								onClick={toggleTheme}
-								className="flex items-center justify-between w-full p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-600 cursor-pointer"
+								className="flex items-center justify-between w-full p-2 cursor-pointer
+								bg-gradient-to-b from-zinc-100 to-zinc-400 hover:from-zinc-300 to hover:to-zinc-300 hover:bg-zinc-300 
+								focus:outline-none text-zinc-800 dark:text-black
+								dark:inset-shadow-sm dark:inset-shadow-black 
+								shadow-md shadow-zinc-400/50 dark:shadow-zinc-500/50"
 							>
-								<span className="text-sm text-zinc-700 dark:text-zinc-300">
-									{theme === "light" ? "Light Mode" : "Dark Mode"}
+								<span className="text-sm">
+									{theme === "light" ? "Turn off the lights" : "Turn on the lights"}
 								</span>
 							</button>
 						</div>
-
-						<NumberInput
-							id="delayInput"
-							label="Delay (seconds)"
-							pattern="[0-9]*"
-							value={inputValues.delay}
-							onChange={handleNumericChange('delay', false)}
-							onBlur={handleBlur('delay')}
-							description="Add delay to simulate race broadcast delay"
-						/>
 						<NumberInput
 							id="greenFlagPitTime"
 							label="Green flag pit time loss (s)"
@@ -150,6 +144,15 @@ export const Settings: React.FC = () => {
 							value={inputValues.scVsc}
 							onChange={handleNumericChange('scVsc', true)}
 							onBlur={handleBlur('scVsc')}
+						/>
+						<NumberInput
+							id="delayInput"
+							label="Delay (s)"
+							pattern="[0-9]*"
+							value={inputValues.delay}
+							onChange={handleNumericChange('delay', false)}
+							onBlur={handleBlur('delay')}
+							description="Add delay to simulate race broadcast delay"
 						/>
 					</div>
 				</div>

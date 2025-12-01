@@ -28,7 +28,8 @@ export const NumberInput: React.FC<NumberInputProps> = ({
 			type="text"
 			inputMode="numeric"
 			pattern={pattern}
-			className="w-full border border-zinc-300 dark:border-zinc-600 p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200"
+			className="w-full p-2 bg-white dark:bg-zinc-800 focus:outline-none text-zinc-700 dark:text-zinc-200
+			inset-shadow-sm inset-shadow-zinc-400 dark:inset-shadow-black"
 			value={value}
 			onChange={onChange}
 			onBlur={onBlur}

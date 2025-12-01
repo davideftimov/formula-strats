@@ -285,7 +285,11 @@ export const LapChart: React.FC = () => {
 						<button
 							type="button"
 							// Adjusted width class for consistency if needed, or rely on parent sizing
-							className="cursor-pointer inline-flex justify-center w-full rounded-md border border-zinc-300 dark:border-zinc-600 shadow-sm pl-3 pr-1 py-2 bg-white dark:bg-black text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 focus:outline-none"
+							className="cursor-pointer inline-flex justify-center w-full pl-2 py-1 text-sm 
+							bg-gradient-to-b from-zinc-100 to-zinc-400 hover:from-zinc-300 to hover:to-zinc-300
+							focus:outline-none text-zinc-800 dark:text-black
+                        	dark:inset-shadow-sm dark:inset-shadow-black 
+                        	shadow-md shadow-zinc-400/50 dark:shadow-zinc-500/50"
 							id="options-menu"
 							aria-haspopup="true"
 							aria-expanded={isSelectorOpen}
@@ -293,7 +297,7 @@ export const LapChart: React.FC = () => {
 						>
 							Select drivers
 							{/* Heroicon name: solid/chevron-down */}
-							<svg className="ml-2 h-5 w-5 text-zinc-700 dark:text-zinc-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+							<svg className="ml-5 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
 								<path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
 							</svg>
 						</button>
@@ -301,19 +305,20 @@ export const LapChart: React.FC = () => {
 
 					{isSelectorOpen && (
 						<div
-							className="origin-top-right absolute left-0 w-full rounded-md shadow-md bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:outline-none z-10 max-h-60 overflow-y-auto"
+							className="origin-top-right absolute left-0 w-full 
+							focus:outline-none z-10 max-h-100 overflow-y-auto bg-zinc-300"
 							role="menu"
 							aria-orientation="vertical"
 							aria-labelledby="options-menu"
 						>
 							<div className="py-1" role="none">
 								{/* All Drivers Option */}
-								<div className="flex items-center px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer" onClick={() => handleDriverSelect('all')}>
+								<div className="flex items-center px-3 py-2 text-sm text-zinc-800 dark:text-black hover:bg-blue-700 hover:text-zinc-200 cursor-pointer" onClick={() => handleDriverSelect('all')}>
 									<input
 										type="checkbox"
 										checked={isAllSelected}
 										readOnly
-										className="mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
+										className="mr-2"
 									/>
 									All / None
 								</div>
@@ -325,12 +330,12 @@ export const LapChart: React.FC = () => {
 										const { name, color } = getDriverInfo(driverRacingNumberStr);
 										const isSelected = selectedDrivers.has(driverRacingNumberStr);
 										return (
-											<div key={driverRacingNumberStr} className="flex items-center px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer" onClick={() => handleDriverSelect(driverRacingNumberStr)}>
+											<div key={driverRacingNumberStr} className="flex items-center px-3 py-2 text-sm text-zinc-800 dark:text-black hover:bg-blue-700 hover:text-zinc-200 cursor-pointer" onClick={() => handleDriverSelect(driverRacingNumberStr)}>
 												<input
 													type="checkbox"
 													checked={isSelected}
 													readOnly
-													className="mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
+													className="mr-2"
 												/>
 												<span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }}></span>
 												{driverDetail.Tla || name}
@@ -349,7 +354,7 @@ export const LapChart: React.FC = () => {
 							type="checkbox"
 							checked={showOutliers}
 							onChange={() => setShowOutliers(!showOutliers)}
-							className="cursor-pointer mr-2 form-checkbox text-indigo-600 dark:text-indigo-400 bg-zinc-100 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 rounded focus:ring-indigo-500 dark:focus:ring-indigo-400"
+							className="cursor-pointer mr-2"
 						/>
 						Show outlier laps
 					</label>

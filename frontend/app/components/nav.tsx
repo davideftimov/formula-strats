@@ -25,7 +25,7 @@ export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, 
     }
 
     return (
-        <div className="lg:flex bg-zinc-200 dark:bg-black text-zinc-800 dark:text-zinc-200 h-full">
+        <div className="lg:flex bg-white dark:bg-black text-zinc-800 dark:text-zinc-200 h-full">
             <div className="lg:w-[22%] flex flex-row justify-between items-center p-2 lg:px-2 lg:border border-zinc-300 dark:border-zinc-700">
                 <p className='text-sm lg:text-base font-bold'>
                     {session?.Meeting.Location} - {session?.Name}
@@ -62,7 +62,11 @@ export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, 
                 {/* Driver and Penalty selectors */}
                 <div className="w-full lg:w-auto flex justify-center items-center my-1 lg:my-0">
                     <select
-                        className="cursor-pointer mr-1 border text-sm border-zinc-300 dark:border-zinc-600 rounded-md p-1 pr-5 bg-white dark:bg-black focus:outline-none text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-md"
+                        className="cursor-pointer mr-1 text-sm p-1 pr-5 
+                        bg-gradient-to-b from-zinc-100 to-zinc-400 hover:from-zinc-300 to hover:to-zinc-300 hover:bg-zinc-300 
+                        focus:outline-none text-zinc-800 dark:text-black
+                        dark:inset-shadow-sm dark:inset-shadow-black 
+                        shadow-md shadow-zinc-400/50 dark:shadow-zinc-500/50"
                         value={selectedDriver || ""}
                         onChange={handleDriverChange}
                     >
@@ -76,7 +80,11 @@ export const Nav: React.FC<NavProps> = ({ selectedPenalty, handlePenaltyChange, 
                             ))}
                     </select>
                     <select
-                        className="cursor-pointer border text-sm border-zinc-300 dark:border-zinc-600 rounded-md p-1 pr-5 bg-white dark:bg-black focus:outline-none text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-md"
+                        className="cursor-pointer text-sm p-1 pr-5 
+                        bg-gradient-to-b from-zinc-100 to-zinc-400 hover:from-zinc-300 to hover:to-zinc-300 hover:bg-zinc-300 
+                        focus:outline-none text-zinc-800 dark:text-black
+                        dark:inset-shadow-sm dark:inset-shadow-black 
+                        shadow-md shadow-zinc-400/50 dark:shadow-zinc-500/50"
                         value={selectedPenalty}
                         onChange={handlePenaltyChange}
                     >
